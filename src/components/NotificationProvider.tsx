@@ -1,48 +1,43 @@
 // src/components/NotificationProvider.tsx
+'use client';
 
-'use client'; 
-
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSocket } from '@/app/hooks/useSocket';
 import { usePushSubscription } from '@/app/hooks/usePushSubscription';
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  // Dalam aplikasi nyata, token dan userId harus didapatkan dari state/context autentikasi
   const [token, setToken] = useState<string | null>(null);
 
+  // Ambil token JWT setelah komponen mount di client
   useEffect(() => {
-    // Ambil token JWT setelah komponen dimuat di client
-    const storedToken = localStorage.getItem('access_token');
-    if (storedToken) {
-      setToken(storedToken);
-    }
+    const storedToken =
+      localStorage.getItem('access_token') ?? localStorage.getItem('token');
+    if (storedToken) setToken(storedToken);
   }, []);
 
-  // 1. Inisialisasi WebSocket (hanya jika ada token)
-  const { notifications } = useSocket(token);
+  // 1) Inisialisasi WebSocket (kalau hook kamu memang butuh token)
+  const { notifications } = useSocket(token ?? undefined);
 
-  // 2. Inisialisasi Web Push Subscription (hanya jika ada token)
+  // 2) Ambil fungsi dari hook push (TANPA argumen di sini)
+  const { askAndSubscribe } = usePushSubscription();
+
+  // 3) Trigger subscribe push setelah token tersedia
   useEffect(() => {
     if (token) {
-      // Panggil fungsi untuk mendaftar service worker dan push subscription
-      usePushSubscription(token);
+      // Hook-nya sendiri tidak menerima argumen; dia baca token dari localStorage.
+      // Kalau kamu ingin kirim token, modifikasi hook-nya (lihat catatan di bawah).
+      askAndSubscribe();
     }
-  }, [token]);
+  }, [token, askAndSubscribe]);
 
-  // Logic untuk menampilkan notifikasi real-time (misalnya toast)
-  // Anda bisa menggunakan library seperti react-hot-toast di sini.
+  // 4) Tampilkan notifikasi realtime (contoh simple)
   useEffect(() => {
     if (notifications.length > 0) {
-      const latestNotif = notifications[notifications.length - 1];
-      console.log('TOAST NOTIFICATION:', latestNotif.message);
-      // Tampilkan toast dengan latestNotif
+      const latest = notifications[notifications.length - 1];
+      console.log('TOAST NOTIFICATION:', latest.message);
+      // di sini kamu bisa panggil toast() / UI lain
     }
   }, [notifications]);
 
-  return (
-    <>
-      {children}
-      {/* Opsi: Tampilkan UI notifikasi global di sini */}
-    </>
-  );
+  return <>{children}</>;
 }

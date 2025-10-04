@@ -8,6 +8,7 @@ import Header from "./components/Header";
 import HeroSection from "./components/HeroSection";
 import PopularPackages from "./components/PopularPackages";
 import CompanyInfo from "./components/CompanyInfo";
+import DebugDiagnostics from "@/components/DebugDiagnostics";
 
 const Index = () => {
   return (
@@ -23,6 +24,7 @@ const Index = () => {
           <h2 className="text-2xl font-bold mb-6">Paket Populer</h2>
           <PopularPackages />
         </section>
+        <DebugDiagnostics />
 
         <section className="py-12 container mx-auto px-6">
           <h2 className="text-2xl font-bold mb-6">Tentang Kami</h2>
@@ -127,3 +129,17 @@ const Index = () => {
 };
 
 export default Index;
+
+
+// src/app/debug/page.tsx
+// import DebugDiagnostics from "@/components/DebugDiagnostics";
+
+// export default function DebugPage() {
+//   return (
+//     <>
+//       <h1>Debug</h1>
+//       <DebugDiagnostics />
+//     </>
+//   );
+// }
+

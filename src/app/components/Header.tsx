@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import {
@@ -12,15 +14,21 @@ import { Label } from "./ui/label";
 import { Plane, User, Eye, EyeOff, LogOut } from "lucide-react";
 import { jwtDecode } from "jwt-decode";
 
+// ✅ IMPORT EnablePushButton + path-nya SESUAIKAN dgn struktur project kamu
+import EnablePushButton from "@/app/components/EnablePushButton"; 
+import { useRealtimeNotifications } from "../hooks/useRealtimeNotifications";
+//  misal kamu taruh file awal di: app/components/EnablePushButton.tsx
+
 interface HeaderProps {
   currentPage?: string;
 }
 
 interface DecodedToken {
-  role: string; // 'user', 'admin', 'superadmin'
+  role: string; // 'user' | 'admin' | 'superadmin'
   username?: string;
   namaLengkap?: string;
   exp?: number;
+  sub?: number; // id user kalau ada
 }
 
 const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
@@ -29,6 +37,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
 
   // User state
   const [user, setUser] = useState<DecodedToken | null>(null);
+  const [jwt, setJwt] = useState<string>("");
 
   // Login states
   const [loginEmail, setLoginEmail] = useState("");
@@ -53,19 +62,23 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
-  // Cek token saat pertama kali load
+  // tampilkan tombol push hanya saat user login & permission belum granted
+  const [canEnablePush, setCanEnablePush] = useState(false);
+
+  // ===== Load token di awal
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (token) {
       try {
         const decoded = jwtDecode<DecodedToken>(token);
-
-        // Jika token expired, hapus
+        // cek expired
         if (decoded.exp && decoded.exp * 1000 < Date.now()) {
           localStorage.removeItem("token");
           setUser(null);
+          setJwt("");
         } else {
           setUser(decoded);
+          setJwt(token);
         }
       } catch (err) {
         console.error("Failed to decode token:", err);
@@ -74,29 +87,40 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
     }
   }, []);
 
-  // Handle Login
+  // ===== Evaluasi kapan tombol push bisa muncul
+  useEffect(() => {
+    const ok =
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      user != null &&
+      Notification.permission !== "granted";
+    setCanEnablePush(ok);
+  }, [user]);
+
+  // ===== Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
     setLoginError("");
 
     try {
-      const res = await fetch("http://localhost:3001/auth/login", {
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"; // pastikan sesuai port Nest kamu
+      const res = await fetch(`${base}/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Login failed");
 
-      if (!data.accessToken) throw new Error("Access token not found.");
+      const token = data.accessToken ?? data.access_token;
+      if (!token) throw new Error("Access token not found.");
 
-      localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("token", token);
+      setJwt(token);
 
-      const decoded = jwtDecode<DecodedToken>(data.accessToken);
+      const decoded = jwtDecode<DecodedToken>(token);
       setUser(decoded);
 
       // Reset & close
@@ -110,7 +134,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
     }
   };
 
-  // Handle Register
+  // ===== Register
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegisterLoading(true);
@@ -124,7 +148,8 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
     }
 
     try {
-      const res = await fetch("http://localhost:3001/auth/register", {
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+      const res = await fetch(`${base}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,9 +166,11 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Registration failed");
 
-      if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
-        const decoded = jwtDecode<DecodedToken>(data.access_token);
+      const token = data.accessToken ?? data.access_token;
+      if (token) {
+        localStorage.setItem("token", token);
+        setJwt(token);
+        const decoded = jwtDecode<DecodedToken>(token);
         setUser(decoded);
       }
 
@@ -165,8 +192,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
       }, 1500);
     } catch (error: any) {
       setRegisterError(error.message);
-    } finally {
-      if (!registrationSuccess) setRegisterLoading(false);
+      setRegisterLoading(false);
     }
   };
 
@@ -175,13 +201,15 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
     setRegisterData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle Logout
+  // ===== Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
+    setJwt("");
     window.location.href = "/";
   };
 
+  useRealtimeNotifications(jwt);
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -206,7 +234,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
           <a href="/profile" className={currentPage === "profile" ? "text-primary font-medium" : "text-muted-foreground hover:text-primary"}>Profile</a>
         </nav>
 
-        {/* Auth Buttons */}
+        {/* Auth / Actions */}
         <div className="flex items-center space-x-3">
           {!user ? (
             <>
@@ -248,7 +276,6 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
                           {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
-                      
                     </div>
                     {loginError && <p className="text-red-600 text-sm">{loginError}</p>}
                     <Button type="submit" className="w-full" disabled={loginLoading}>
@@ -290,6 +317,10 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
           ) : (
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">Hi, {user.username || "User"}</span>
+
+            
+              {canEnablePush && <EnablePushButton jwt={jwt} />}
+
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-1" /> Keluar
               </Button>
