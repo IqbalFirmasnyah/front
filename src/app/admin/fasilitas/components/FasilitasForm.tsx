@@ -96,7 +96,7 @@ const FasilitasForm: React.FC<FasilitasFormProps> = ({ initialData, onSubmit, on
       // Convert hargaEstimasi to string for the backend DTO
       dataToSubmit.paketLuarKota.hargaEstimasi = String(dataToSubmit.paketLuarKota.hargaEstimasi);
       // Hapus properti images dari payload JSON (karena files dikirim terpisah)
-      delete (dataToSubmit.paketLuarKota as any).images;
+      // delete (dataToSubmit.paketLuarKota as any).images;
     } else {
       delete dataToSubmit.paketLuarKota;
     }

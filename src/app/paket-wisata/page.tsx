@@ -244,16 +244,6 @@ export default function PaketWisataPage() {
               <h2 className="text-2xl font-bold">
                 {loading ? "Memuat..." : `${filteredPackages.length} Paket Tersedia`}
               </h2>
-
-              <Button
-                onClick={handleProfileClick}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <User className="h-4 w-4" />
-                Profile
-              </Button>
             </div>
 
             {loading ? (
@@ -344,7 +334,7 @@ export default function PaketWisataPage() {
                       {/* Duration */}
                       <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
                         <Clock className="h-4 w-4" />
-                        <span>{paket.durasiHari}</span>
+                        <span>{paket.durasiHari} Hari</span>
                       </div>
 
                       {/* Price */}

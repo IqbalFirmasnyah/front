@@ -6,17 +6,16 @@ import Header from "@/app/components/Header";
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Label } from '@/app/components/ui/label';
-import { Calendar } from '@/app/components/ui/calendar'; 
-import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover'; 
+import { Calendar } from '@/app/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { Badge } from '@/app/components/ui/badge';
 import { Calendar as CalendarIcon, ArrowLeft, CreditCard, Clock, Star, Image as ImageIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils'; 
+import { format, startOfDay, isBefore } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Toaster, toast } from "sonner";
+import { convertTravelImageUrl } from "@/lib/helper/image_url";
 
 // FUNGSI HELPER BARU: untuk mengonversi nama file gambar menjadi URL yang dapat diakses
-export const convertTravelImageUrl = (image: string): string => {
-    return (`http://localhost:3001/public/travel-images/${image}`);
-}
 
 interface PaketWisata {
   paketId: number;
@@ -24,54 +23,33 @@ interface PaketWisata {
   deskripsi: string;
   itinerary: string;
   harga: number;
-  durasiHari: number; 
+  durasiHari: number;
   statusPaket: string;
   kategori: string;
-  images: string[]; // Digunakan untuk galeri
-  // Properti 'gambar: string | null;' dihapus karena sudah diganti oleh 'images'
+  images: string[];
 }
 
 const faqList = [
-  {
-    question: 'Apa saja yang termasuk dalam paket?',
-    answer: 'Paket termasuk akomodasi, transportasi, tiket masuk objek wisata, dan tour guide.'
-  },
-  {
-    question: 'Bisakah saya membatalkan perjalanan?',
-    answer: 'Pembatalan bisa dilakukan maksimal H-3 dengan potongan 25% dari total biaya.'
-  },
-  {
-    question: 'Apakah ada diskon untuk grup?',
-    answer: 'Kami memberikan diskon 10% untuk grup minimal 10 orang.'
-  }
+  { question: 'Apa saja yang termasuk dalam paket?', answer: 'Paket termasuk akomodasi, transportasi, tiket masuk objek wisata, dan tour guide.' },
+  { question: 'Bisakah saya membatalkan perjalanan?', answer: 'Pembatalan bisa dilakukan maksimal H-3 dengan potongan 25% dari total biaya.' },
+  { question: 'Apakah ada diskon untuk grup?', answer: 'Kami memberikan diskon 10% untuk grup minimal 10 orang.' }
 ];
 
 const testimonials = [
-  {
-    nama: 'Andi Setiawan',
-    kota: 'Surabaya',
-    rating: 5,
-    komentar: 'Perjalanan yang menyenangkan dan pelayanan luar biasa!',
-    foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
-  },
-  {
-    nama: 'Sinta Ayu',
-    kota: 'Bandung',
-    rating: 5,
-    komentar: 'Rekomendasi banget! Semua sesuai dengan deskripsi.',
-    foto: 'https://images.unsplash.com/photo-1494790108755-2616b60b8f83?w=100&h=100&fit=crop&crop=face'
-  },
+  { nama: 'Andi Setiawan', kota: 'Surabaya', rating: 5, komentar: 'Perjalanan yang menyenangkan dan pelayanan luar biasa!', foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face' },
+  { nama: 'Sinta Ayu', kota: 'Bandung', rating: 5, komentar: 'Rekomendasi banget! Semua sesuai dengan deskripsi.', foto: 'https://images.unsplash.com/photo-1494790108755-2616b60b8f83?w=100&h=100&fit=crop&crop=face' },
 ];
 
 export default function PaketWisataDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+
   const [paket, setPaket] = useState<PaketWisata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
-  const [tanggal, setTanggal] = useState<Date>();
-  const [selectedImage, setSelectedImage] = useState<string>(''); // State untuk gambar utama
+  const [tanggal, setTanggal] = useState<Date | undefined>();
+  const [selectedImage, setSelectedImage] = useState<string>("");
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -81,6 +59,7 @@ export default function PaketWisataDetailPage() {
 
         const res = await fetch(`http://localhost:3001/paket-wisata/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
         });
 
         if (!res.ok) {
@@ -89,20 +68,19 @@ export default function PaketWisataDetailPage() {
             router.push('/login');
             throw new Error("Sesi berakhir, silakan login kembali.");
           }
-          throw new Error(`Gagal fetch (${res.status})`);
+          throw new Error(`Gagal mengambil data paket (${res.status})`);
         }
 
         const data = await res.json();
         const fetchedPaket: PaketWisata = data.data;
         setPaket(fetchedPaket);
-        
-        // Set gambar pertama sebagai gambar yang dipilih saat data dimuat
-        if (fetchedPaket.images && fetchedPaket.images.length > 0) {
+
+        if (fetchedPaket.images?.length > 0) {
           setSelectedImage(fetchedPaket.images[0]);
         }
-
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message || "Terjadi kesalahan saat memuat data.");
+        toast.error(err.message || "Gagal memuat data paket.");
       } finally {
         setLoading(false);
       }
@@ -111,13 +89,8 @@ export default function PaketWisataDetailPage() {
     if (id) fetchDetail();
   }, [id, router]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
 
   const getTanggalSelesai = () => {
     if (!tanggal || !paket?.durasiHari) return "";
@@ -128,22 +101,20 @@ export default function PaketWisataDetailPage() {
 
   const handleBooking = () => {
     if (!tanggal) {
-      // Mengganti alert() dengan pesan di konsol atau UI kustom
-      console.error("Silakan pilih tanggal keberangkatan terlebih dahulu.");
-      // Anda bisa menambahkan state untuk menampilkan pesan error di UI di sini
+      toast.error("Silakan pilih tanggal keberangkatan terlebih dahulu.");
       return;
     }
 
     const tanggalSelesai = getTanggalSelesai();
     const formattedTanggalSelesai = tanggalSelesai ? format(tanggalSelesai, 'yyyy-MM-dd') : "";
 
+    toast.success("Tanggal dipilih. Membuka halaman detail booking...");
     router.push(
       `/booking?paketId=${paket?.paketId}&tanggalMulaiWisata=${format(tanggal, 'yyyy-MM-dd')}&tanggalSelesaiWisata=${formattedTanggalSelesai}`
     );
   };
 
   // --- LOADING / ERROR STATES ---
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -162,6 +133,8 @@ export default function PaketWisataDetailPage() {
             </div>
           </div>
         </main>
+        {/* Toaster lokal (aman kalau Toaster global belum ada). Jika sudah ada di layout, ini boleh dihapus. */}
+        <Toaster richColors position="top-right" />
       </div>
     );
   }
@@ -180,6 +153,7 @@ export default function PaketWisataDetailPage() {
             </Button>
           </div>
         </main>
+        <Toaster richColors position="top-right" />
       </div>
     );
   }
@@ -198,30 +172,28 @@ export default function PaketWisataDetailPage() {
             </Button>
           </div>
         </main>
+        <Toaster richColors position="top-right" />
       </div>
     );
   }
 
   // --- KOMPONEN UTAMA (Setelah Data Dimuat) ---
+  const defaultImagePlaceholder =
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=600&fit=crop';
 
-  const defaultImagePlaceholder = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=600&fit=crop';
-  
-  const currentImageUrl = paket.images.length > 0 && selectedImage
-    ? convertTravelImageUrl(selectedImage)
-    : defaultImagePlaceholder;
+  const currentImageUrl =
+    paket.images.length > 0 && selectedImage
+      ? convertTravelImageUrl(selectedImage)
+      : defaultImagePlaceholder;
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           {/* Back Button */}
-          <Button 
-            variant="ghost" 
-            onClick={() => router.back()} 
-            className="mb-6 hover:bg-muted"
-          >
+          <Button variant="ghost" onClick={() => router.back()} className="mb-6 hover:bg-muted">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Kembali ke daftar paket
           </Button>
@@ -229,50 +201,62 @@ export default function PaketWisataDetailPage() {
           {/* Package Header & Gallery */}
           <div className="mb-8">
             <div className="mb-6">
-                <div className="relative w-full h-96 overflow-hidden rounded-2xl shadow-card mb-4">
-                    {/* Gambar Utama (Selected Image) */}
-                    <img
-                        src={currentImageUrl}
-                        alt={paket.namaPaket}
-                        className="w-full h-full object-cover transition-opacity duration-300"
-                    />
-                    {paket.images.length === 0 && (
-                        <div className="absolute inset-0 bg-gray-100 flex flex-col items-center justify-center text-muted-foreground">
-                            <ImageIcon className="h-10 w-10 mb-2" />
-                            <p>Tidak ada gambar tersedia</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Thumbnail Gallery */}
-                {paket.images.length > 0 && (
-                    <div className="flex flex-wrap gap-3 overflow-x-auto pb-2">
-                        {paket.images.map((imageName, index) => {
-                            const url = convertTravelImageUrl(imageName);
-                            return (
-                                <img
-                                    key={index}
-                                    src={url}
-                                    alt={`Thumbnail ${index + 1}`}
-                                    className={cn(
-                                        "w-20 h-20 object-cover rounded-lg cursor-pointer transition-all",
-                                        imageName === selectedImage 
-                                            ? "border-4 border-primary shadow-lg" 
-                                            : "opacity-70 hover:opacity-100 hover:border-2 hover:border-primary/50"
-                                    )}
-                                    onClick={() => setSelectedImage(imageName)}
-                                />
-                            );
-                        })}
-                    </div>
+              <div className="relative w-full h-96 overflow-hidden rounded-2xl shadow-card mb-4">
+                {/* Gambar Utama */}
+                <img
+                  src={currentImageUrl}
+                  alt={paket.namaPaket}
+                  className="w-full h-full object-cover transition-opacity duration-300"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = defaultImagePlaceholder;
+                  }}
+                />
+                {paket.images.length === 0 && (
+                  <div className="absolute inset-0 bg-gray-100 flex flex-col items-center justify-center text-muted-foreground">
+                    <ImageIcon className="h-10 w-10 mb-2" />
+                    <p>Tidak ada gambar tersedia</p>
+                  </div>
                 )}
-            </div>
+              </div>
 
+              {/* Thumbnail Gallery */}
+              {paket.images.length > 0 && (
+                <div className="flex flex-wrap gap-3 overflow-x-auto pb-2">
+                  {paket.images.map((imageName, index) => {
+                    const url = convertTravelImageUrl(imageName);
+                    const active = imageName === selectedImage;
+                    return (
+                      <img
+                        key={index}
+                        src={url}
+                        alt={`Thumbnail ${index + 1}`}
+                        className={cn(
+                          "w-20 h-20 object-cover rounded-lg cursor-pointer transition-all border",
+                          active
+                            ? "border-4 border-primary shadow-lg"
+                            : "border-transparent opacity-75 hover:opacity-100 hover:border-primary/50"
+                        )}
+                        onClick={() => setSelectedImage(imageName)}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://placehold.co/80x80/eeeeee/333333?text=?';
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             <div className="mt-6">
               <div className="flex flex-wrap items-center gap-4 mb-4">
                 <h1 className="text-4xl font-bold">{paket.namaPaket}</h1>
-                <Badge className={`${paket.statusPaket === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                <Badge className={cn(
+                  "capitalize",
+                  paket.statusPaket?.toLowerCase() === 'aktif'
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                )}>
                   {paket.statusPaket}
                 </Badge>
                 <Badge variant="secondary">{paket.kategori}</Badge>
@@ -298,9 +282,7 @@ export default function PaketWisataDetailPage() {
                   <CardTitle>Deskripsi Paket</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {paket.deskripsi}
-                  </p>
+                  <p className="text-muted-foreground leading-relaxed">{paket.deskripsi}</p>
                 </CardContent>
               </Card>
 
@@ -310,8 +292,7 @@ export default function PaketWisataDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* Asumsi itinerary adalah string yang dipisahkan baris baru */}
-                    {paket.itinerary.split('\n').map((line, idx) => (
+                    {(paket.itinerary || "").split('\n').map((line, idx) => (
                       <div key={idx} className="border-l-2 border-primary/30 pl-4">
                         <p className="text-sm">{line}</p>
                       </div>
@@ -336,12 +317,14 @@ export default function PaketWisataDetailPage() {
                         </div>
                         <p className="italic text-muted-foreground mb-4">"{item.komentar}"</p>
                         <div className="flex items-center gap-3">
-                          <img 
-                            src={item.foto} 
-                            className="w-10 h-10 rounded-full object-cover" 
-                            alt={item.nama} 
-                            // Fallback jika gambar gagal dimuat
-                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/A0AEC0/FFFFFF?text=P' }}
+                          <img
+                            src={item.foto}
+                            className="w-10 h-10 rounded-full object-cover"
+                            alt={item.nama}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                'https://placehold.co/100x100/A0AEC0/FFFFFF?text=P';
+                            }}
                           />
                           <div>
                             <p className="font-semibold text-sm">{item.nama}</p>
@@ -379,14 +362,14 @@ export default function PaketWisataDetailPage() {
               </Card>
             </div>
 
-            {/* Booking Form - Hanya menginputkan tanggal */}
+            {/* Booking Form */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <CardHeader>
                   <CardTitle>Pilih Tanggal</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Date Selection */}
+                  {/* Date Picker yang rapi (shadcn) */}
                   <div className="space-y-2">
                     <Label>Tanggal Keberangkatan</Label>
                     <Popover>
@@ -399,7 +382,7 @@ export default function PaketWisataDetailPage() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {tanggal ? format(tanggal, "dd/MM/yyyy") : "Pilih tanggal"}
+                          {tanggal ? format(tanggal, "dd MMM yyyy") : "Pilih tanggal"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -407,21 +390,25 @@ export default function PaketWisataDetailPage() {
                           mode="single"
                           selected={tanggal}
                           onSelect={setTanggal}
-                          disabled={(date) => date < new Date()}
+                          // Disable tanggal sebelum hari ini
+                          disabled={(date) => isBefore(date, startOfDay(new Date()))}
                           initialFocus
-                          className="p-3 pointer-events-auto"
+                          className="p-3 rounded-md border bg-background"
                         />
                       </PopoverContent>
                     </Popover>
                     {tanggal && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        Perkiraan tanggal selesai: <strong>{getTanggalSelesai() ? format(getTanggalSelesai(), "dd/MM/yyyy") : ''}</strong>
+                        Perkiraan tanggal selesai:{" "}
+                        <strong>
+                          {getTanggalSelesai() ? format(getTanggalSelesai() as Date, "dd MMM yyyy") : ""}
+                        </strong>
                       </p>
                     )}
                   </div>
 
-                  <Button 
-                    className="w-full text-black" 
+                  <Button
+                    className="w-full text-black"
                     variant="ocean"
                     size="lg"
                     onClick={handleBooking}
@@ -436,6 +423,7 @@ export default function PaketWisataDetailPage() {
           </div>
         </div>
       </main>
+      <Toaster richColors position="top-right" />
     </div>
   );
 }

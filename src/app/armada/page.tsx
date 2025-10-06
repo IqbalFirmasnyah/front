@@ -1,12 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { convertCarImageUrl } from "@/lib/helper/image_url";
 
-// Definisikan fungsi konversi URL
-export const convertCarImageUrl = (image: string) => {
-  // Sesuaikan dengan port backend Anda (3001) dan path publik yang telah dikonfigurasi
-  return `http://localhost:3001/public/car-images/${image}`;
-};
 
 type Armada = {
   armadaId: number;
@@ -27,7 +23,7 @@ export default function ArmadaPage() {
   useEffect(() => {
     const fetchArmadas = async () => {
       try {
-        // Endpoint: http://localhost:3001/armada/all
+
         const res = await fetch("http://localhost:3001/armada/all");
         if (!res.ok) throw new Error(`Gagal memuat data: HTTP error ${res.status}`);
         

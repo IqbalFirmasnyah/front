@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -28,28 +28,37 @@ import { Calendar } from "../components/ui/calendar";
 import { Label } from "../components/ui/label";
 import Header from "../components/Header";
 
-
+/* ---------- Types ---------- */
 interface CustomRouteSegment {
   nama: string;
   alamat: string;
 }
 
-// Define the DTO type for creating a Custom Route, matching your backend
 interface CreateCustomRuteDto {
   fasilitasId: number;
   tujuanList: CustomRouteSegment[];
-  tanggalMulai: string; 
-  tanggalSelesai: string; 
+  tanggalMulai: string;
+  tanggalSelesai: string;
   catatanKhusus?: string;
 }
 
-export default function CreateCustomRutePage() {
+/* ---------- Page wrapper: Wajib ada Suspense ---------- */
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <CreateCustomRutePageClient />
+    </Suspense>
+  );
+}
+
+/* ---------- Client component yang pakai useSearchParams ---------- */
+function CreateCustomRutePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const fasilitasId = searchParams.get('fasilitasId');
+  const fasilitasId = searchParams.get("fasilitasId");
 
   const [customRouteSegments, setCustomRouteSegments] = useState<CustomRouteSegment[]>([
-    { nama: "", alamat: "" }
+    { nama: "", alamat: "" },
   ]);
   const [pilihDate, setPilihDate] = useState<Date | undefined>(undefined);
   const [catatanKhusus, setCatatanKhusus] = useState("");
@@ -59,29 +68,25 @@ export default function CreateCustomRutePage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    // Validasi awal: pastikan fasilitasId ada
     if (!fasilitasId) {
       setError("Fasilitas ID tidak ditemukan. Harap kembali ke halaman fasilitas.");
     }
   }, [fasilitasId]);
 
   const handleAddSegment = () => {
-    setCustomRouteSegments([
-      ...customRouteSegments,
-      { nama: "", alamat: "" }
-    ]);
+    setCustomRouteSegments((prev) => [...prev, { nama: "", alamat: "" }]);
   };
 
   const handleRemoveSegment = (index: number) => {
-    const newSegments = [...customRouteSegments];
-    newSegments.splice(index, 1);
-    setCustomRouteSegments(newSegments);
+    setCustomRouteSegments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSegmentChange = (index: number, field: keyof CustomRouteSegment, value: string) => {
-    const newSegments = [...customRouteSegments];
-    newSegments[index][field] = value;
-    setCustomRouteSegments(newSegments);
+    setCustomRouteSegments((prev) => {
+      const next = [...prev];
+      next[index][field] = value;
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,9 +104,9 @@ export default function CreateCustomRutePage() {
     }
 
     if (!fasilitasId) {
-        setError("Fasilitas ID tidak valid.");
-        setLoading(false);
-        return;
+      setError("Fasilitas ID tidak valid.");
+      setLoading(false);
+      return;
     }
 
     if (!pilihDate) {
@@ -110,7 +115,6 @@ export default function CreateCustomRutePage() {
       return;
     }
 
-    // Validasi segmen rute
     if (customRouteSegments.length === 0) {
       setError("Setidaknya harus ada satu segmen rute kustom.");
       setLoading(false);
@@ -123,18 +127,18 @@ export default function CreateCustomRutePage() {
         return;
       }
     }
+
     const formattedDate = format(pilihDate, "yyyy-MM-dd");
 
     const payload: CreateCustomRuteDto = {
       fasilitasId: Number(fasilitasId),
       tujuanList: customRouteSegments,
-      tanggalMulai: formattedDate, // Gunakan tanggal yang dipilih sebagai Mulai
+      tanggalMulai: formattedDate,
       tanggalSelesai: formattedDate,
       catatanKhusus: catatanKhusus || undefined,
     };
 
     try {
-      // Pastikan URL endpoint sesuai dengan controller Nest.js Anda
       const res = await fetch("http://localhost:3001/custom-rute", {
         method: "POST",
         headers: {
@@ -145,24 +149,23 @@ export default function CreateCustomRutePage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        const errorMessage = Array.isArray(errorData.message)
-          ? errorData.message.join(", ")
-          : errorData.message;
-        throw new Error(errorMessage || "Gagal membuat Rute Kustom.");
+        const errorData = await res.json().catch(() => ({}));
+        const msg =
+          Array.isArray((errorData as any).message)
+            ? (errorData as any).message.join(", ")
+            : (errorData as any).message;
+        throw new Error(msg || "Gagal membuat Rute Kustom.");
       }
 
       const result = await res.json();
       setSuccess("Rute Kustom berhasil dibuat!");
-      console.log("Custom Route created:", result);
 
-      // Arahkan ke halaman booking dengan ID fasilitas baru
       const { customRuteId, fasilitasId: returnedFasilitasId } = result;
       router.push(`/booking?customRuteId=${customRuteId}&fasilitasId=${returnedFasilitasId}`);
-
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat membuat Rute Kustom.");
-      console.error("Error creating custom route:", err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan saat membuat Rute Kustom.";
+      setError(message);
+      // console.error(message);
     } finally {
       setLoading(false);
     }
@@ -220,6 +223,7 @@ export default function CreateCustomRutePage() {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        type="button"
                         variant={"outline"}
                         className={cn(
                           "w-full justify-start text-left font-normal",
@@ -242,71 +246,71 @@ export default function CreateCustomRutePage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+
                 {/* Destinasi/Segmen Rute Kustom */}
                 <section className="space-y-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                        <Route size={20} className="text-black" /> Detail Destinasi
-                    </h3>
-                    {customRouteSegments.map((segment, index) => (
+                  <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <Route size={20} className="text-black" /> Detail Destinasi
+                  </h3>
+                  {customRouteSegments.map((segment, index) => (
                     <div key={index} className="border border-gray-200 p-4 rounded-lg bg-white shadow-sm relative space-y-3">
-                        <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-base font-medium text-gray-700">Destinasi #{index + 1}</h4>
-                            {customRouteSegments.length > 1 && (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveSegment(index)}
-                                className="text-red-500 hover:bg-red-50 hover:text-red-700"
-                                title="Hapus Destinasi"
-                            >
-                                <Trash2 size={18} />
-                            </Button>
-                            )}
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-base font-medium text-gray-700">Destinasi #{index + 1}</h4>
+                        {customRouteSegments.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveSegment(index)}
+                            className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                            title="Hapus Destinasi"
+                          >
+                            <Trash2 size={18} />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label htmlFor={`nama-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
+                            Nama Destinasi
+                          </label>
+                          <input
+                            type="text"
+                            id={`nama-${index}`}
+                            value={segment.nama}
+                            onChange={(e) => handleSegmentChange(index, "nama", e.target.value)}
+                            className="w-full border rounded-md shadow-sm px-4 py-2 focus:ring-2 focus:ring-black focus:border-black transition"
+                            placeholder="Contoh: Kawah Putih Bandung"
+                            required
+                          />
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4">
-                            <div>
-                                <label htmlFor={`nama-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
-                                    Nama Destinasi
-                                </label>
-                                <input
-                                    type="text"
-                                    id={`nama-${index}`}
-                                    value={segment.nama}
-                                    onChange={(e) => handleSegmentChange(index, 'nama', e.target.value)}
-                                    className="w-full border rounded-md shadow-sm px-4 py-2 focus:ring-2 focus:ring-black focus:border-black transition"
-                                    placeholder="Contoh: Kawah Putih Bandung"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor={`alamat-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
-                                    Alamat Destinasi
-                                </label>
-                                <textarea
-                                    id={`alamat-${index}`}
-                                    value={segment.alamat}
-                                    onChange={(e) => handleSegmentChange(index, 'alamat', e.target.value)}
-                                    rows={2}
-                                    className="w-full border rounded-md shadow-sm px-4 py-2 focus:ring-2 focus:ring-black focus:border-black transition"
-                                    placeholder="Tulis alamat lengkap destinasi"
-                                    required
-                                />
-                            </div>
+                        <div>
+                          <label htmlFor={`alamat-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
+                            Alamat Destinasi
+                          </label>
+                          <textarea
+                            id={`alamat-${index}`}
+                            value={segment.alamat}
+                            onChange={(e) => handleSegmentChange(index, "alamat", e.target.value)}
+                            rows={2}
+                            className="w-full border rounded-md shadow-sm px-4 py-2 focus:ring-2 focus:ring-black focus:border-black transition"
+                            placeholder="Tulis alamat lengkap destinasi"
+                            required
+                          />
                         </div>
+                      </div>
                     </div>
-                    ))}
-                    <Button
-                        type="button"
-                        onClick={handleAddSegment}
-                        variant="outline"
-                        className="w-full justify-center text-sm font-semibold border-dashed border-gray-300 text-gray-600 hover:bg-gray-100 mt-4"
-                    >
-                        <Plus size={18} className="mr-2" /> Tambah Destinasi
-                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    onClick={handleAddSegment}
+                    variant="outline"
+                    className="w-full justify-center text-sm font-semibold border-dashed border-gray-300 text-gray-600 hover:bg-gray-100 mt-4"
+                  >
+                    <Plus size={18} className="mr-2" /> Tambah Destinasi
+                  </Button>
                 </section>
 
                 {/* Catatan Khusus */}
@@ -324,15 +328,9 @@ export default function CreateCustomRutePage() {
                   />
                 </div>
 
+                {error && <p className="text-red-600 text-center text-sm">{error}</p>}
+                {success && <p className="text-green-600 text-center text-sm">{success}</p>}
 
-                {error && (
-                  <p className="text-red-600 text-center text-sm">{error}</p>
-                )}
-                {success && (
-                  <p className="text-green-600 text-center text-sm">{success}</p>
-                )}
-
-                {/* Tombol Utama menjadi Hitam */}
                 <Button
                   type="submit"
                   className="w-full bg-black hover:bg-gray-800 text-white mt-2"
@@ -388,7 +386,6 @@ export default function CreateCustomRutePage() {
         </section>
       </main>
 
-      {/* Footer (Menggunakan footer dari Dropoff Page, diubah ke abu-abu terang agar kontras) */}
       <footer className="bg-gray-100 text-gray-800 py-12 mt-12">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
@@ -466,9 +463,7 @@ export default function CreateCustomRutePage() {
           </div>
 
           <div className="border-t border-gray-200 mt-8 pt-6 text-center text-gray-600">
-            <p>
-              &copy; {new Date().getFullYear()} Jelajah Tour & Travel. Semua hak dilindungi.
-            </p>
+            <p>&copy; {new Date().getFullYear()} Jelajah Tour & Travel. Semua hak dilindungi.</p>
           </div>
         </div>
       </footer>

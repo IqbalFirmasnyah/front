@@ -28,7 +28,6 @@ const PaketWisataForm: React.FC<PaketWisataFormProps> = ({ initialData, onSubmit
 
   useEffect(() => {
     if (initialData) {
-      // Format tanggal ke YYYY-MM-DD untuk input type="date"
       const formattedDate = initialData.pilihTanggal ? new Date(initialData.pilihTanggal).toISOString().split('T')[0] : '';
       setFormData({
         namaPaket: initialData.namaPaket || '',
@@ -177,17 +176,6 @@ const PaketWisataForm: React.FC<PaketWisataFormProps> = ({ initialData, onSubmit
               step="0.01" // Untuk harga dengan desimal
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
               required
-            />
-          </div>
-          <div>
-            <label htmlFor="fotoPaket" className="block text-sm font-medium text-gray-700">URL Foto Paket (Opsional)</label>
-            <input
-              type="text"
-              id="fotoPaket"
-              name="fotoPaket"
-              value={formData.fotoPaket}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
             />
           </div>
           <div>

@@ -70,7 +70,6 @@ const SupirTable: React.FC<SupirTableProps> = ({
                 <th className="py-3 px-4 border-b">Nama</th>
                 <th className="py-3 px-4 border-b">No. HP</th>
                 <th className="py-3 px-4 border-b">Pengalaman (Tahun)</th>
-                <th className="py-3 px-4 border-b">Rating</th>
                 <th className="py-3 px-4 border-b">Status</th>
                 <th className="py-3 px-4 border-b">Aksi</th>
               </tr>
@@ -82,7 +81,6 @@ const SupirTable: React.FC<SupirTableProps> = ({
                   <td className="py-3 px-4 border-b">{supir.nama}</td>
                   <td className="py-3 px-4 border-b">{supir.nomorHp}</td>
                   <td className="py-3 px-4 border-b">{supir.pengalamanTahun}</td>
-                  <td className="py-3 px-4 border-b">{supir.ratingRata?.toFixed(1) || 'N/A'}</td>
                   <td className="py-3 px-4 border-b">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-semibold ${

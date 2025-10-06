@@ -8,7 +8,7 @@ export default function DebugDiagnostics() {
     // 1) Cek WebSocket URL (ingat: ini di-inline saat build)
     // pastikan env kamu DIDEFINISIKAN dengan prefix NEXT_PUBLIC_
     // mis. NEXT_PUBLIC_SOCKET_URL
-    // eslint-disable-next-line no-console
+     
     console.log("SOCKET_URL:", process.env.NEXT_PUBLIC_SOCKET_URL);
 
     // 2) Cek Service Worker + Push

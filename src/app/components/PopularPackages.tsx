@@ -3,198 +3,454 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PackageCard, { TourPackage } from "@/app/components/PackageCard";
+import ArmadaCard, {
+  SkeletonArmadaCard,
+  type Armada as ArmadaType,
+} from "@/app/components/ArmadaCard";
+import SupirCard from "@/app/components/SupirCard";
 
-interface Fasilitas {
+/* =========================
+   Types
+========================= */
+type Fasilitas = {
   fasilitasId: number;
   namaFasilitas: string;
   deskripsi?: string;
   harga?: number;
+};
+
+// format yang diharapkan SupirCard
+type SupirNormalized = {
+  supirId: number;
+  nama: string;
+  alamat: string;
+  nomorHp: string;
+  nomorSim: string;
+  fotoSupir: string | null;
+  pengalamanTahun: number;
+  ratingRata: number | null;
+  statusSupir: string;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+/* =========================
+   Skeletons
+========================= */
+
+const SkeletonCard: React.FC = () => (
+  <div className="rounded-xl overflow-hidden border bg-white shadow-sm animate-pulse">
+    <div className="h-48 sm:h-52 bg-gray-200" />
+    <div className="p-5 space-y-3">
+      <div className="h-4 w-2/3 bg-gray-200 rounded" />
+      <div className="h-3 w-5/6 bg-gray-200 rounded" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="h-3 bg-gray-200 rounded" />
+        <div className="h-3 bg-gray-200 rounded" />
+      </div>
+      <div className="h-6 w-1/3 bg-gray-200 rounded" />
+    </div>
+    <div className="p-5 pt-0">
+      <div className="h-10 w-full bg-gray-200 rounded" />
+    </div>
+  </div>
+);
+
+const SkeletonTile: React.FC = () => (
+  <div className="p-6 bg-white rounded-xl border shadow-sm animate-pulse">
+    <div className="h-4 w-1/2 bg-gray-200 rounded" />
+    <div className="h-3 w-5/6 bg-gray-200 rounded mt-3" />
+    <div className="h-3 w-1/3 bg-gray-200 rounded mt-3" />
+  </div>
+);
+
+/* =========================
+   Helpers
+========================= */
+
+const grid3 =
+  "grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 " +
+  "[@media(min-width:1024px)]:grid-cols-[repeat(3,minmax(0,1fr))]";
+
+// normalisasi paket luar kota -> TourPackage
+function mapLuarToTourPackage(lp: any): TourPackage {
+  return {
+    paketId: lp?.id ?? lp?.paketId ?? lp?.paketWisataLuarKotaId ?? Math.floor(Math.random() * 1e9),
+    namaPaket: lp?.namaPaket ?? lp?.nama ?? "Paket Luar Kota",
+    namaTempat: lp?.namaTempat ?? lp?.lokasi ?? "",
+    lokasi: lp?.lokasi ?? "-",
+    deskripsi: lp?.deskripsi ?? "",
+    itinerary: lp?.itinerary ?? "",
+    jarakKm: lp?.jarakKm ?? 0,
+    durasiHari: lp?.durasiHari ?? lp?.durasi ?? 0,
+    pilihTanggal: lp?.pilihTanggal ?? lp?.tanggalMulaiWisata ?? new Date().toISOString(),
+    harga: lp?.harga ?? lp?.hargaEstimasi ?? 0,
+    images: lp?.images ?? (lp?.fotoPaket ? [lp.fotoPaket] : []),
+    fotoPaket: lp?.fotoPaket ?? "",
+    kategori: lp?.kategori ?? "luar kota",
+    statusPaket: lp?.statusPaket ?? "aktif",
+    tanggalMulaiWisata: lp?.tanggalMulaiWisata,
+    tanggalSelesaiWisata: lp?.tanggalSelesaiWisata,
+  };
 }
 
+// normalisasi supir -> SupirNormalized (untuk SupirCard)
+const normalizeSupir = (s: any): SupirNormalized => ({
+  supirId: s?.supirId ?? s?.id ?? Math.floor(Math.random() * 1e9),
+  nama: s?.nama ?? s?.namaSupir ?? "Supir",
+  alamat: s?.alamat ?? s?.alamatSupir ?? "-",
+  nomorHp: s?.nomorHp ?? s?.noHp ?? s?.telepon ?? "-",
+  nomorSim: s?.nomorSim ?? s?.noSim ?? "-",
+  fotoSupir: s?.fotoSupir ?? s?.image ?? null,
+  pengalamanTahun: s?.pengalamanTahun ?? s?.pengalaman ?? 0,
+  ratingRata: typeof s?.ratingRata === "number" ? s.ratingRata : null,
+  statusSupir: s?.statusSupir ?? (s?.statusAktif ? "tersedia" : "tidak tersedia"),
+});
+
+// normalisasi armada -> ArmadaType (untuk ArmadaCard)
+const normalizeArmada = (a: any): ArmadaType => ({
+  armadaId: a?.armadaId ?? a?.id ?? Math.floor(Math.random() * 1e9),
+  jenisMobil: a?.jenisMobil ?? a?.jenis ?? a?.tipe ?? "-",
+  merkMobil: a?.merkMobil ?? a?.merk ?? a?.brand ?? "-",
+  platNomor: a?.platNomor ?? a?.plat ?? a?.noPolisi ?? "-",
+  kapasitas: a?.kapasitas ?? 0,
+  tahunKendaraan: a?.tahunKendaraan ?? a?.tahun ?? 0,
+  statusArmada: a?.statusArmada ?? a?.status ?? "aktif",
+  fotoArmada: a?.fotoArmada ?? a?.image ?? a?.foto ?? undefined,
+});
+
+/* =========================
+   Component
+========================= */
+
 const PopularPackages: React.FC = () => {
-  const [packages, setPackages] = useState<TourPackage[]>([]);
-  const [fasilitasList, setFasilitasList] = useState<Fasilitas[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
-  // --- 1. Cek Status Login ---
+  // Paket (dalam kota)
+  const [packages, setPackages] = useState<TourPackage[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(true);
+  const [errorPackages, setErrorPackages] = useState<string | null>(null);
+
+  // Paket (luar kota)
+  const [luarPackages, setLuarPackages] = useState<TourPackage[]>([]);
+  const [loadingLuar, setLoadingLuar] = useState(true);
+  const [errorLuar, setErrorLuar] = useState<string | null>(null);
+
+  // Fasilitas
+  const [fasilitasList, setFasilitasList] = useState<Fasilitas[]>([]);
+  const [loadingFasilitas, setLoadingFasilitas] = useState(true);
+  const [errorFasilitas, setErrorFasilitas] = useState<string | null>(null);
+
+  // Supir
+  const [supirs, setSupirs] = useState<SupirNormalized[]>([]);
+  const [loadingSupir, setLoadingSupir] = useState(true);
+  const [errorSupir, setErrorSupir] = useState<string | null>(null);
+
+  // Armada
+  const [armadas, setArmadas] = useState<ArmadaType[]>([]);
+  const [loadingArmada, setLoadingArmada] = useState(true);
+  const [errorArmada, setErrorArmada] = useState<string | null>(null);
+
+  /* -------- Fetchers -------- */
+  const fetchPackages = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch(`${API_BASE}/paket-wisata/all`, { cache: "no-store", signal });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.message || "Gagal mengambil paket wisata.");
+    return (json.data ?? []) as TourPackage[];
+  }, []);
+
+  const fetchLuarPackages = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch(`${API_BASE}/paket-wisata-luar-kota/all`, { cache: "no-store", signal });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.message || "Gagal mengambil paket wisata luar kota.");
+    const raw = json.data ?? [];
+    return (raw as any[]).map(mapLuarToTourPackage);
+  }, []);
+
+  const fetchFasilitas = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch(`${API_BASE}/fasilitas`, { cache: "no-store", signal });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.message || "Gagal mengambil fasilitas.");
+    return (json.data ?? []) as Fasilitas[];
+  }, []);
+
+  const fetchSupirs = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch(`${API_BASE}/supir/all`, { cache: "no-store", signal });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.message || "Gagal mengambil data supir.");
+    const data = Array.isArray(json) ? json : (json.data ?? []);
+    return (data as any[]).map(normalizeSupir);
+  }, []);
+
+  const fetchArmadas = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch(`${API_BASE}/armada/all`, { cache: "no-store", signal });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.message || "Gagal mengambil data armada.");
+    const data = Array.isArray(json) ? json : (json.data ?? []);
+    return (data as any[]).map(normalizeArmada);
+  }, []);
+
+  /* -------- Initial load -------- */
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
-  }, []);
+    const controller = new AbortController();
 
-  // --- 2. Handlers Fetch Data (Menggunakan useCallback) ---
-  
-  // Handler untuk fetch paket wisata (tidak memerlukan token)
-  const fetchPackages = useCallback(async () => {
-    try {
-      const res = await fetch("http://localhost:3001/paket-wisata/all", {
-        cache: "no-store",
-      });
-      const result = await res.json();
+    (async () => {
+      try {
+        setLoadingPackages(true);
+        setLoadingLuar(true);
+        setLoadingFasilitas(true);
+        setLoadingSupir(true);
+        setLoadingArmada(true);
 
-      if (res.ok) {
-        setPackages(result.data || []);
-      } else {
-        console.error("Failed to fetch packages:", result.message);
+        const [pkg, luar, fas, sup, arm] = await Promise.all([
+          fetchPackages(controller.signal).catch((e) => {
+            setErrorPackages(String(e?.message || e));
+            return [];
+          }),
+          fetchLuarPackages(controller.signal).catch((e) => {
+            setErrorLuar(String(e?.message || e));
+            return [];
+          }),
+          fetchFasilitas(controller.signal).catch((e) => {
+            setErrorFasilitas(String(e?.message || e));
+            return [];
+          }),
+          fetchSupirs(controller.signal).catch((e) => {
+            setErrorSupir(String(e?.message || e));
+            return [];
+          }),
+          fetchArmadas(controller.signal).catch((e) => {
+            setErrorArmada(String(e?.message || e));
+            return [];
+          }),
+        ]);
+
+        setPackages(pkg);
+        setLuarPackages(luar);
+        setFasilitasList(fas);
+        setSupirs(sup);
+        setArmadas(arm);
+      } finally {
+        setLoadingPackages(false);
+        setLoadingLuar(false);
+        setLoadingFasilitas(false);
+        setLoadingSupir(false);
+        setLoadingArmada(false);
       }
-    } catch (error) {
-      console.error("Error fetching packages:", error);
-    }
-  }, []);
+    })();
 
-  // Handler untuk fetch fasilitas (membutuhkan token)
-  const fetchFasilitas = useCallback(async (token: string) => {
-    try {
-      const res = await fetch("http://localhost:3001/fasilitas", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    return () => controller.abort();
+  }, [fetchPackages, fetchLuarPackages, fetchFasilitas, fetchSupirs, fetchArmadas]);
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Gagal mengambil data fasilitas.");
-      }
-
-      const responseData = await res.json();
-      setFasilitasList(responseData.data || []);
-    } catch (err: any) {
-      console.error("Error fetching fasilitas list:", err);
-      setError(err.message || "Terjadi kesalahan saat memuat fasilitas.");
-    }
-  }, []);
-  
-  // --- 3. Effect Utama untuk Mengatur Data dan Loading ---
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const token = localStorage.getItem("token");
-
-    const loadData = async () => {
-      // Selalu fetch paket wisata
-      const packagePromise = fetchPackages();
-      
-      let fasilitasPromise: Promise<void> | null = null;
-      
-      // Hanya fetch fasilitas jika ada token
-      if (token) {
-        fasilitasPromise = fetchFasilitas(token);
-      }
-      
-      // Tunggu kedua promise (yang fasilitas mungkin null)
-      await Promise.all([packagePromise, fasilitasPromise].filter(p => p !== null));
-
-      setLoading(false); 
-    };
-
-    loadData();
-    // Gunakan [isLoggedIn] di dependency agar data fasilitas di-refresh saat login/logout
-  }, [fetchPackages, fetchFasilitas, isLoggedIn]); 
-
-  if (loading) {
-    return (
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-lg">Loading paket wisata & fasilitas...</p>
-        </div>
-      </section>
-    );
-  }
+  /* -------- UI -------- */
 
   return (
-    <section className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Section Heading */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-            Pilihan Paket Wisata
+    <section className="py-16 md:py-20 bg-gradient-to-b from-white to-gray-50">
+      <div className="mx-auto max-w-7xl px-4 md:px-6">
+        {/* ========== Paket Wisata (Dalam Kota) ========== */}
+        <header className="text-center mb-10 md:mb-14">
+          <p className="text-sm tracking-wider uppercase text-primary font-semibold">Rekomendasi Kami</p>
+          <h2 className="mt-2 text-balance text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+            Pilihan Paket Wisata Populer
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Nikmati perjalanan menyenangkan dengan berbagai destinasi terbaik.
+          <p className="mt-3 text-pretty text-gray-600 max-w-2xl mx-auto">
+            Nikmati perjalanan menyenangkan ke berbagai destinasi terbaik—harga kompetitif, jadwal fleksibel, dan layanan ramah.
           </p>
-        </div>
+        </header>
 
-        {/* Grid Paket Wisata */}
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {packages.length === 0 ? (
-            <div className="sm:col-span-2 lg:col-span-3 text-center py-20">
-              <div className="text-6xl mb-4">✈️</div>
-              <h3 className="text-2xl font-bold mb-2">
-                Belum ada paket wisata yang tersedia.
-              </h3>
-              <p className="text-muted-foreground">
-                Kembali lagi nanti untuk melihat penawaran terbaru!
-              </p>
-            </div>
-          ) : (
-            packages.map((paket) => (
+        {errorPackages && (
+          <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700" role="alert">
+            {errorPackages}
+          </div>
+        )}
+
+        {loadingPackages ? (
+          <div className={grid3} aria-busy="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : packages.length === 0 ? (
+          <div className="rounded-xl bg-white border shadow-sm p-10 text-center">
+            <div className="text-6xl mb-4">✈️</div>
+            <h3 className="text-2xl font-bold mb-2">Belum ada paket wisata yang tersedia</h3>
+            <p className="text-gray-600">Kembali lagi nanti untuk melihat penawaran terbaru!</p>
+          </div>
+        ) : (
+          <div className={grid3}>
+            {packages.map((pkg) => (
               <PackageCard
-                key={paket.paketId}
-                // PackageCard akan menggunakan `pkg.fotoPaket` dan helper URL
-                package={paket} 
+                key={pkg.paketId}
+                package={pkg}
                 hideBookingButton
                 onBookNow={(id) => router.push(`/paket-wisata/${id}`)}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* Tombol lihat semua paket wisata (hanya muncul kalau login) */}
-        {isLoggedIn && (
-          <div className="mt-8 text-center">
+        {!loadingPackages && packages.length > 0 && (
+          <div className="mt-10 text-center">
             <button
               onClick={() => router.push("/paket-wisata")}
-              className="px-6 py-3 bg-primary text-white rounded-lg shadow hover:bg-primary/90 transition"
+              className="inline-flex items-center px-6 py-3 rounded-lg bg-primary text-white shadow hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
             >
-              Lihat Semua Paket Wisata
+              Lihat Semua Paket
             </button>
           </div>
         )}
 
-        {/* Grid Fasilitas */}
-        <div className="mt-20">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">Fasilitas</h2>
-          {error ? (
-            <p className="text-red-500">{error}</p>
-          ) : fasilitasList.length === 0 ? (
-            <p className="text-gray-600">
-              {isLoggedIn ? "Belum ada fasilitas yang tersedia." : "Login untuk melihat fasilitas tambahan."}
-            </p>
+        {/* ========== Paket Wisata Luar Kota ========== */}
+        <div className="mt-16 md:mt-20">
+          <div className="flex items-end justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Eksplor Lebih Jauh</p>
+              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Paket Wisata Luar Kota</h3>
+            </div>
+            {luarPackages.length > 0 && !loadingLuar && (
+              <button
+                onClick={() => router.push("/paket-wisata?kategori=luar%20kota")}
+                className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/30 rounded px-2 py-1"
+              >
+                Lihat Semua
+              </button>
+            )}
+          </div>
+
+          {errorLuar && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorLuar}</div>
+          )}
+
+          {loadingLuar ? (
+            <div className={grid3} aria-busy="true">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          ) : luarPackages.length === 0 ? (
+            <p className="text-gray-600">Belum ada paket wisata luar kota yang tersedia.</p>
           ) : (
-            <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {fasilitasList.map((fasilitas) => (
+            <div className={grid3}>
+              {luarPackages.map((pkg) => (
+                <PackageCard
+                  key={pkg.paketId}
+                  package={pkg}
+                  hideBookingButton
+                  onBookNow={(id) => router.push(`/paket-wisata/${id}`)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ========== Fasilitas ========== */}
+        <div className="mt-16 md:mt-20">
+          <div className="flex items-end justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Tambahan Perjalanan</p>
+              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Fasilitas Tersedia</h3>
+            </div>
+            {fasilitasList.length > 0 && !loadingFasilitas && (
+              <button
+                onClick={() => router.push("/fasilitas")}
+                className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/30 rounded px-2 py-1"
+              >
+                Lihat Semua
+              </button>
+            )}
+          </div>
+
+          {errorFasilitas && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorFasilitas}</div>
+          )}
+
+          {loadingFasilitas ? (
+            <div
+              className="grid gap-6 sm:grid-cols-2 [@media(min-width:1024px)]:grid-cols-[repeat(3,minmax(0,1fr))]"
+              aria-busy="true"
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonTile key={i} />
+              ))}
+            </div>
+          ) : fasilitasList.length === 0 ? (
+            <p className="text-gray-600">Belum ada fasilitas yang tersedia.</p>
+          ) : (
+            <ul className="grid gap-6 sm:grid-cols-2 [@media(min-width:1024px)]:grid-cols-[repeat(3,minmax(0,1fr))]">
+              {fasilitasList.map((f) => (
                 <li
-                  key={fasilitas.fasilitasId}
-                  className="p-6 bg-white rounded-xl shadow hover:shadow-lg transition"
+                  key={f.fasilitasId}
+                  className="group relative p-6 bg-white rounded-xl border shadow-sm hover:shadow-md transition"
                 >
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {fasilitas.namaFasilitas}
-                  </h3>
-                  {fasilitas.deskripsi && (
-                    <p className="text-gray-600 mt-2">{fasilitas.deskripsi}</p>
-                  )}
-                  {fasilitas.harga && (
-                    <p className="mt-2 font-bold text-primary">
-                      Rp {fasilitas.harga.toLocaleString()}
-                    </p>
+                  <h4 className="text-lg font-semibold tracking-tight text-gray-900">{f.namaFasilitas}</h4>
+                  {f.deskripsi && <p className="text-pretty text-gray-600 mt-2">{f.deskripsi}</p>}
+                  {typeof f.harga === "number" && (
+                    <p className="mt-4 font-bold text-primary">Rp {f.harga.toLocaleString("id-ID")}</p>
                   )}
                 </li>
               ))}
             </ul>
           )}
+        </div>
 
-          {/* Tombol lihat semua fasilitas (hanya muncul kalau login) */}
-          {isLoggedIn && (
-            <div className="mt-8 text-center">
-              <button
-                onClick={() => router.push("/fasilitas")}
-                className="px-6 py-3 bg-primary text-white rounded-lg shadow hover:bg-primary/90 transition"
-              >
-                Lihat Semua Fasilitas
-              </button>
+        {/* ========== Supir (pakai SupirCard) ========== */}
+        <div className="mt-16 md:mt-20">
+          <div className="flex items-end justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Tim Lapangan</p>
+              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Daftar Supir</h3>
+            </div>
+          </div>
+
+          {errorSupir && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorSupir}</div>
+          )}
+
+          {loadingSupir ? (
+            <div className={grid3} aria-busy="true">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonTile key={i} />
+              ))}
+            </div>
+          ) : supirs.length === 0 ? (
+            <p className="text-gray-600">Belum ada data supir.</p>
+          ) : (
+            <ul className={grid3}>
+              {supirs.map((s) => (
+                <li key={s.supirId} className="list-none">
+                  <SupirCard supir={s} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* ========== Armada (pakai ArmadaCard) ========== */}
+        <div className="mt-16 md:mt-20">
+          <div className="flex items-end justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Transportasi</p>
+              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Armada Kami</h3>
+            </div>
+          </div>
+
+          {errorArmada && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorArmada}</div>
+          )}
+
+          {loadingArmada ? (
+            <div className={grid3} aria-busy="true">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonArmadaCard key={i} />
+              ))}
+            </div>
+          ) : armadas.length === 0 ? (
+            <p className="text-gray-600">Belum ada data armada.</p>
+          ) : (
+            <div className={grid3}>
+              {armadas.map((a) => (
+                <ArmadaCard key={a.armadaId} armada={a} actionText="Lihat Detail" />
+              ))}
             </div>
           )}
         </div>

@@ -56,8 +56,6 @@ const UploadImageModal: React.FC<UploadImageModalProps> = ({ armada, onClose, on
       const res = await fetch(`http://localhost:3001/armada/upload-image/${armada.armadaId}`, {
         method: 'POST',
         headers: { 
-            // Jangan set Content-Type: 'multipart/form-data', 
-            // browser akan mengaturnya secara otomatis dengan boundary yang benar
             'Authorization': `Bearer ${token}` 
         },
         body: formData,

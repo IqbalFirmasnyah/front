@@ -253,7 +253,7 @@ export default function FasilitasPage() {
                   let buttonText = "Lihat Detail";
                   let buttonVariant: any = "ocean";
                   let detailUrl = "";
-                  let icon = <ArrowRightCircle className="h-4 w-4" />;
+                  const icon = <ArrowRightCircle className="h-4 w-4" />;
                   let displayPrice: number | undefined;
                   let gambar = fasilitas.gambar;
 

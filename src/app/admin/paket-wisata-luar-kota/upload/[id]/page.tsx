@@ -1,4 +1,5 @@
-// pages/admin/paket-wisata-luar/upload/[id]/page.tsx
+
+
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
