@@ -137,7 +137,8 @@ export default function AdminPaketWisataPage() {
       if (!token) throw new Error('Token tidak ditemukan.');
 
       let res: Response;
-      const url = editingPaket ? `${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/${editingPaket.paketId}` : `${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/add`;
+      const api =process.env.NEXT_PUBLIC_API_URL
+      const url = editingPaket ? `${api}/paket-wisata/${editingPaket.paketId}` : `${api}/paket-wisata/add`;
       const method = editingPaket ? 'PATCH' : 'POST';
 
       res = await fetch(url, {
