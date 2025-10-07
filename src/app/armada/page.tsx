@@ -24,7 +24,7 @@ export default function ArmadaPage() {
     const fetchArmadas = async () => {
       try {
 
-        const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/armada/all");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/armada/all`);
         if (!res.ok) throw new Error(`Gagal memuat data: HTTP error ${res.status}`);
         
         const json = await res.json();

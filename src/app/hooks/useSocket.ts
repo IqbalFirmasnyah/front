@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
 
 
-const SOCKET_URL = '${process.env.NEXT_PUBLIC_API_URL}'; 
+const SOCKET_URL = `${process.env.NEXT_PUBLIC_API_URL}`; 
 type ClientSocket = Socket<DefaultEventsMap, DefaultEventsMap> | null; 
 
 interface NotificationData {
@@ -40,7 +40,7 @@ export const useSocket = (token: string | null | undefined) => { // Menerima JWT
       
       newSocket.on('connect', () => {
           console.log('Connected to NestJS WebSocket');
-          // Tidak perlu lagi emit('joinRoom'), karena server sudah menangani join room
+
       });
 
       newSocket.on('error', (message) => {

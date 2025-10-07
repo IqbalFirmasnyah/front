@@ -38,7 +38,7 @@ export default function PaketWisataLuarPage() {
         }
 
         // Endpoint: ${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar/active
-        const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/all", { // Menggunakan endpoint 'all' yang ada di controller
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/all`, { 
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
@@ -11,7 +9,6 @@ import ImageUploadForm from '../../components/ImageUploadForm';
 import { PaketWisataLuarKota } from '@/app/admin/types/PaketWisataLuar'; 
 import { DecodedToken } from '@/app/admin/types/PaketWisataLuar';
 
-const API_BASE_URL = '${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota';
 
 export default function ImageUploadPage() {
   const router = useRouter();
@@ -51,7 +48,7 @@ export default function ImageUploadPage() {
     try {
       const token = getToken();
 
-      const res = await fetch(`${API_BASE_URL}/${paketId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/${paketId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +128,7 @@ export default function ImageUploadPage() {
         formData.append('images', file); 
       });
 
-      const res = await fetch(`${API_BASE_URL}/upload-images/${paketId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/upload-images/${paketId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }, 
         body: formData,
@@ -166,7 +163,7 @@ export default function ImageUploadPage() {
     try {
         const token = getToken();
         
-        const res = await fetch(`${API_BASE_URL}/delete-image/${paketId}?imageName=${imageName}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/delete-image/${paketId}?imageName=${imageName}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` },
         });

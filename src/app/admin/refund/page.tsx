@@ -20,13 +20,26 @@ export default function AdminRefundsPage() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const navLinks = [
+    { name: "Dashboard", href: "/admin/dashboard" },
+    { name: "Report Booking", href: "/admin/report/bookings" },
+    { name: "Report Refuns", href: "/admin/report/refund" },
+    { name: "Paket Wisata", href: "/admin/paket-wisata" },
+    { name: "Fasilitas", href: "/admin/fasilitas" },
+    { name: "Supir", href: "/admin/supir" },
+    { name: "Armada", href: "/admin/armada" },
+    { name: "Booking", href: "/admin/booking" },
+    { name: "Pengguna", href: "/admin/user" },
+    { name: "Refund", href: "/admin/refund" },
+  ];
+
   const fetchRefunds = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) return router.push("/login");
 
-      const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/refunds", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -72,9 +85,21 @@ export default function AdminRefundsPage() {
       <aside className="w-64 bg-gray-800 text-white flex flex-col p-4 shadow-lg">
         <h1 className="text-2xl font-bold text-orange-400 mb-8 text-center">Admin Panel</h1>
         <nav className="flex-1">
-          <ul className="space-y-2">
-            <li><a href="/admin/dashboard" className={`block py-2 px-4 rounded-lg ${pathname === "/admin/dashboard" ? "bg-orange-500" : "hover:bg-gray-700"}`}>Dashboard</a></li>
-            <li><a href="/admin/refunds" className={`block py-2 px-4 rounded-lg ${pathname === "/admin/refunds" ? "bg-orange-500" : "hover:bg-gray-700"}`}>Refunds</a></li>
+        <ul className="space-y-2">
+            {navLinks.map((link) => (
+              <li key={link.name}>
+                <a
+                  href={link.href}
+                  className={`block py-2 px-4 rounded-lg transition duration-200 ${
+                    pathname === link.href
+                      ? "bg-orange-500 text-white shadow-md"
+                      : "hover:bg-gray-700 text-gray-300"
+                  }`}
+                >
+                  {link.name}
+                </a>
+              </li>
+            ))}
           </ul>
         </nav>
       </aside>

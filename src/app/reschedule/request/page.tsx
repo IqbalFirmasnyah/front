@@ -23,7 +23,6 @@ import { Toaster, toast } from "sonner";
 import { format } from "date-fns";
 import { convertTravelImageUrl } from "@/lib/helper/image_url";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "${process.env.NEXT_PUBLIC_API_URL}";
 
 /* ===================== Types ===================== */
 interface BookingDetail {
@@ -57,7 +56,7 @@ function diffDaysUTC(later: Date, earlier: Date) {
 
 /* ===================== API ===================== */
 async function validateRescheduleApi(bookingId: number, tanggalBaru: string, token: string) {
-  const res = await fetch(`${API_BASE_URL}/reschedule/validate/${bookingId}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reschedule/validate/${bookingId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ tanggalBaru }),
@@ -109,7 +108,7 @@ function RescheduleRequestPageClient() {
           return;
         }
 
-        const res = await fetch(`${API_BASE_URL}/booking/${bookingIdParam}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/${bookingIdParam}`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
@@ -261,7 +260,7 @@ function RescheduleRequestPageClient() {
             tanggalBaru,
             alasan: alasan.trim(),
           };
-          const res = await fetch(`${API_BASE_URL}/reschedule`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reschedule`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify(payload),

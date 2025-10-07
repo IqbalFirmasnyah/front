@@ -1,99 +1,199 @@
+// app/admin/refund/components/RefundsTable.tsx
 "use client";
 
 import React from "react";
-import { CheckCircle, XCircle } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Hash,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 
 interface Refund {
   refundId: number;
   bookingId: number;
   userId: number;
-  // nilai ini SUDAH final (setelah potongan) karena dikirim dari form sebagai jumlahRefund
   jumlahRefund: number | string;
   statusRefund: string;
+  userName?: string; // <= opsional, kalau backend sudah kasih nama
 }
 
 interface RefundsTableProps {
   refunds: Refund[];
   onAction: (refundId: number, action: "approve" | "reject") => void;
+  /** opsional: peta userId -> nama user, jika Refund tidak punya userName */
+  usersMap?: Record<number, string>;
 }
 
 const toNumber = (v: unknown) =>
-  typeof v === "number" ? v : Number(String(v ?? "").replace(/[^\d.-]/g, "")) || 0;
+  typeof v === "number"
+    ? v
+    : Number(String(v ?? "").replace(/[^\d.-]/g, "")) || 0;
 
 const formatIDR = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })
-    .format(Math.max(0, Math.round(n)));
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(Math.max(0, Math.round(n)));
 
-const RefundsTable: React.FC<RefundsTableProps> = ({ refunds, onAction }) => {
-  const getStatusBadge = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "PENDING":
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Pending</span>;
-      case "APPROVED":
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Approved</span>;
-      case "REJECTED":
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">Rejected</span>;
-      default:
-        return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">{status}</span>;
-    }
-  };
-
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const s = status.toUpperCase();
+  if (s === "PENDING") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
+        Pending
+      </span>
+    );
+  }
+  if (s === "APPROVED") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">
+        Approved
+      </span>
+    );
+  }
+  if (s === "REJECTED") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">
+        Rejected
+      </span>
+    );
+  }
   return (
-    <div className="overflow-x-auto bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 ring-1 ring-inset ring-zinc-200">
+      {status}
+    </span>
+  );
+};
+
+const RefundsTable: React.FC<RefundsTableProps> = ({ refunds, onAction, usersMap }) => {
+  return (
+    <div className="mx-auto max-w-screen-xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="mb-5">
+        <h2 className="text-lg font-semibold text-zinc-900">Daftar Refund</h2>
+        <p className="text-xs text-zinc-500">
+          Tinjau permintaan refund dan lakukan persetujuan atau penolakan.
+        </p>
+      </div>
+
       {refunds.length === 0 ? (
-        <p className="text-center text-gray-500 py-6 text-lg">Tidak ada refund tersedia.</p>
+        <div className="rounded-xl border border-dashed border-zinc-300 py-12 text-center">
+          <p className="text-zinc-500">Tidak ada refund tersedia.</p>
+        </div>
       ) : (
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {["ID", "Booking ID", "User ID", "Jumlah Refund Final", "Status", "Aksi"].map((title) => (
-                <th
-                  key={title}
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  {title}
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed border-separate border-spacing-0">
+            {/* Lebar kolom diatur agar tidak overscreen */}
+            <colgroup>
+              <col className="w-16" /> {/* ID */}
+              <col className="w-28 sm:w-36" /> {/* Booking ID */}
+              <col className="w-40 sm:w-56" /> {/* Pengaju (nama) */}
+              <col className="w-40 sm:w-48" /> {/* Jumlah */}
+              <col className="w-28" /> {/* Status */}
+              <col className="w-40 sm:w-48" /> {/* Aksi */}
+            </colgroup>
+
+            <thead>
+              <tr className="text-left text-[13px] font-semibold text-zinc-600">
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    ID
+                  </div>
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {refunds.map((r) => {
-              const finalAmount = toNumber(r.jumlahRefund); // <-- nilai final
-              return (
-                <tr key={r.refundId} className="hover:bg-gray-50 transition-colors duration-200">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">{r.refundId}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{r.bookingId}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{r.userId}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-semibold">
-                    {formatIDR(finalAmount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(r.statusRefund)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap flex space-x-2 justify-center">
-                    {r.statusRefund.toUpperCase() === "PENDING" ? (
-                      <>
-                        <button
-                          onClick={() => onAction(r.refundId, "approve")}
-                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-all duration-200 transform hover:scale-105"
-                        >
-                          <CheckCircle className="w-4 h-4" /> Approve
-                        </button>
-                        <button
-                          onClick={() => onAction(r.refundId, "reject")}
-                          className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-all duration-200 transform hover:scale-105"
-                        >
-                          <XCircle className="w-4 h-4" /> Reject
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-gray-400 font-medium">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  Booking ID
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <UserRound className="h-4 w-4" />
+                    Pengaju
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4" />
+                    Jumlah Refund
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  Status
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {refunds.map((r, idx) => {
+                const finalAmount = toNumber(r.jumlahRefund);
+                const displayName =
+                  r.userName ?? usersMap?.[r.userId] ?? "-";
+
+                return (
+                  <tr
+                    key={r.refundId}
+                    className={`text-sm text-zinc-800 transition-colors ${
+                      idx % 2 === 0 ? "bg-white" : "bg-zinc-50/40"
+                    } hover:bg-blue-50/40`}
+                  >
+                    <td className="border-t border-zinc-200 px-3 py-3 font-medium">
+                      {r.refundId}
+                    </td>
+
+                    <td className="border-t border-zinc-200 px-3 py-3">
+                      {r.bookingId}
+                    </td>
+
+                    <td className="border-t border-zinc-200 px-3 py-3">
+                      <div className="truncate" title={displayName}>
+                        {displayName}
+                      </div>
+                      {/* userId kecil di bawah, berguna bila butuh referensi teknis */}
+                      <div className="text-[11px] text-zinc-400">
+                        #{r.userId}
+                      </div>
+                    </td>
+
+                    <td className="border-t border-zinc-200 px-3 py-3 font-semibold">
+                      {formatIDR(finalAmount)}
+                    </td>
+
+                    <td className="border-t border-zinc-200 px-3 py-3">
+                      <StatusBadge status={r.statusRefund} />
+                    </td>
+
+                    <td className="border-t border-zinc-200 px-3 py-3">
+                      {r.statusRefund.toUpperCase() === "PENDING" ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => onAction(r.refundId, "approve")}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white shadow-sm ring-1 ring-inset ring-green-700/20 transition hover:bg-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => onAction(r.refundId, "reject")}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm ring-1 ring-inset ring-rose-700/20 transition hover:bg-rose-700"
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-zinc-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -139,7 +139,7 @@ function CreateCustomRutePageClient() {
     };
 
     try {
-      const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/custom-rute", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/custom-rute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

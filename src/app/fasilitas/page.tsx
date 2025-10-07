@@ -91,7 +91,7 @@ export default function FasilitasPage() {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Token tidak ditemukan. Harap login ulang.");
 
-        const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/fasilitas", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fasilitas`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

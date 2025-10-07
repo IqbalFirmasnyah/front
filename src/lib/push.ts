@@ -1,7 +1,4 @@
-// app/lib/webpush.ts
-const NEST_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '${process.env.NEXT_PUBLIC_API_URL}'; // sesuaikan
 
-// helper konversi VAPID key (base64url → Uint8Array)
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
@@ -35,7 +32,7 @@ export async function subscribePush(jwtToken: string) {
   const reg = await registerServiceWorker();
 
   // Ambil VAPID public key dari Nest
-  const keyResp = await fetch(`${NEST_BASE_URL}/notifications/vapid-public-key`);
+  const keyResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/vapid-public-key`);
   const { publicKey } = await keyResp.json();
   if (!publicKey) throw new Error('Missing VAPID public key');
 
@@ -52,7 +49,7 @@ export async function subscribePush(jwtToken: string) {
     userAgent: navigator.userAgent,
   };
 
-  const res = await fetch(`${NEST_BASE_URL}/notifications/subscribe`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/subscribe`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -72,7 +69,7 @@ export async function unsubscribePush(jwtToken: string) {
   if (!sub) return;
 
   try {
-    await fetch(`${NEST_BASE_URL}/notifications/unsubscribe?endpoint=${encodeURIComponent(sub.endpoint)}`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/unsubscribe?endpoint=${encodeURIComponent(sub.endpoint)}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${jwtToken}` },
       credentials: 'include',

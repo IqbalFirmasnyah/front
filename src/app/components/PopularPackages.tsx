@@ -32,11 +32,6 @@ type SupirNormalized = {
   statusSupir: string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
-
-/* =========================
-   Skeletons
-========================= */
 
 const SkeletonCard: React.FC = () => (
   <div className="rounded-xl overflow-hidden border bg-white shadow-sm animate-pulse">
@@ -153,14 +148,14 @@ const PopularPackages: React.FC = () => {
 
   /* -------- Fetchers -------- */
   const fetchPackages = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch(`${API_BASE}/paket-wisata/all`, { cache: "no-store", signal });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/all`, { cache: "no-store", signal });
     const json = await res.json();
     if (!res.ok) throw new Error(json?.message || "Gagal mengambil paket wisata.");
     return (json.data ?? []) as TourPackage[];
   }, []);
 
   const fetchLuarPackages = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch(`${API_BASE}/paket-wisata-luar-kota/all`, { cache: "no-store", signal });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/all`, { cache: "no-store", signal });
     const json = await res.json();
     if (!res.ok) throw new Error(json?.message || "Gagal mengambil paket wisata luar kota.");
     const raw = json.data ?? [];
@@ -168,14 +163,14 @@ const PopularPackages: React.FC = () => {
   }, []);
 
   const fetchFasilitas = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch(`${API_BASE}/fasilitas`, { cache: "no-store", signal });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fasilitas`, { cache: "no-store", signal });
     const json = await res.json();
     if (!res.ok) throw new Error(json?.message || "Gagal mengambil fasilitas.");
     return (json.data ?? []) as Fasilitas[];
   }, []);
 
   const fetchSupirs = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch(`${API_BASE}/supir/all`, { cache: "no-store", signal });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supir/all`, { cache: "no-store", signal });
     const json = await res.json();
     if (!res.ok) throw new Error(json?.message || "Gagal mengambil data supir.");
     const data = Array.isArray(json) ? json : (json.data ?? []);
@@ -183,7 +178,7 @@ const PopularPackages: React.FC = () => {
   }, []);
 
   const fetchArmadas = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch(`${API_BASE}/armada/all`, { cache: "no-store", signal });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/armada/all`, { cache: "no-store", signal });
     const json = await res.json();
     if (!res.ok) throw new Error(json?.message || "Gagal mengambil data armada.");
     const data = Array.isArray(json) ? json : (json.data ?? []);

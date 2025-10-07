@@ -86,8 +86,6 @@ const ShadcnStatusDropdown: React.FC<StatusDropdownProps> = ({ bookingId, curren
         </DropdownMenu>
     );
 };
-// ********************************************
-// ********************************************
 
 
 const BookingTable: React.FC<BookingTableProps> = ({

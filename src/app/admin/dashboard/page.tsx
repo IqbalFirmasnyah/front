@@ -59,7 +59,7 @@ interface UserRow {
 // =====================
 // Helpers
 // =====================
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
+
 
 function toMonthKey(dateStr?: string) {
   if (!dateStr) return "Unknown";
@@ -187,7 +187,7 @@ export default function AdminDashboardPage() {
         }
 
         // 1) Admin dashboard identity
-        const dashRes = await fetch(`${API_BASE}/auth/admin/dashboard`, {
+        const dashRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/admin/dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!dashRes.ok) {
@@ -208,13 +208,13 @@ export default function AdminDashboardPage() {
 
         // 2) Datasets (adjust paths IF your controllers use different prefixes)
         const [bookingsRes, refundsRes, usersRes] = await Promise.all([
-          fetch(`${API_BASE}/bookings`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${API_BASE}/refunds`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${API_BASE}/users`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
             headers: { Authorization: `Bearer ${token}` }, // if user list is public to admin only
           }),
         ]);

@@ -174,8 +174,8 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
     setLoginError('');
   
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? '${process.env.NEXT_PUBLIC_API_URL}';
-      const res = await fetch(`${base}/auth/login`, {
+    
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
@@ -249,8 +249,8 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
 
     setRegisterLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
-      const res = await fetch(`${base}/auth/register`, {
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -314,8 +314,8 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
 
     setForgotLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
-      const res = await fetch(`${base}/auth/forgot-password`, {
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: forgotEmail }),
@@ -341,8 +341,8 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
 
     setForgotLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
-      const res = await fetch(`${base}/auth/reset-password`, {
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -22,7 +22,6 @@ interface ImageUploadFormProps {
 
 const MAX_FILES = 20;      // batas per unggahan (sesuai FilesInterceptor)
 const MAX_FILE_MB = 5;     // batas ukuran tiap file
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
 const PUBLIC_DIR = "travel-images"; // ganti ke "package-images" jika khusus paket Luar Kota
 
 type Preview = { name: string; url: string; isNew: boolean };
@@ -172,7 +171,7 @@ export default function ImageUploadForm({
         // kalau API kirim full URL, pakai langsung; kalau tidak, build dari base
         url: name.includes("://")
           ? name
-          : `${API_BASE}/public/${PUBLIC_DIR}/${encodeURIComponent(name)}`,
+          : `${process.env.NEXT_PUBLIC_API_URL}/public/${PUBLIC_DIR}/${encodeURIComponent(name)}`,
         isNew: false,
       })),
     [existingImages]

@@ -22,8 +22,6 @@ interface DecodedToken {
   exp: number;
 }
 
-const API_LUAR_KOTA_BASE = '${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota';
-const API_FASILITAS_BASE = '${process.env.NEXT_PUBLIC_API_URL}/fasilitas';
 
 export default function AdminFasilitasPage() {
   const router = useRouter();
@@ -109,7 +107,7 @@ export default function AdminFasilitasPage() {
       const token = getToken();
 
       const queryString = new URLSearchParams(filters as Record<string, string>).toString();
-      const res = await fetch(`${API_FASILITAS_BASE}?${queryString}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fasilitas?${queryString}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       });
@@ -146,7 +144,7 @@ export default function AdminFasilitasPage() {
         formData.append('images', files[i]); 
     }
 
-    const uploadUrl = `${API_LUAR_KOTA_BASE}/upload-images/${paketLuarKotaId}`;
+    const uploadUrl = `${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/upload-images/${paketLuarKotaId}`;
     
     const res = await fetch(uploadUrl, {
         method: 'POST',
@@ -172,7 +170,7 @@ export default function AdminFasilitasPage() {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus gambar ${imageName}?`)) return;
 
     try {
-        const deleteUrl = `${API_LUAR_KOTA_BASE}/delete-image/${paketId}?imageName=${imageName}`;
+        const deleteUrl = `${process.env.NEXT_PUBLIC_API_URL}/fasilitas/delete-image/${paketId}?imageName=${imageName}`;
         const res = await fetch(deleteUrl, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
@@ -210,7 +208,7 @@ export default function AdminFasilitasPage() {
     setLoading(true);
     
     const isEditing = !!editingFasilitas;
-    const url = isEditing ? `${API_FASILITAS_BASE}/${editingFasilitas?.fasilitasId}` : `${API_FASILITAS_BASE}/add`;
+    const url = isEditing ? `${process.env.NEXT_PUBLIC_API_URL}/fasilitas/${editingFasilitas?.fasilitasId}` : `${process.env.NEXT_PUBLIC_API_URL}/fasilitas/add`;
     const method = isEditing ? 'PATCH' : 'POST';
     
     let currentPaketLuarKotaId: number | null = null;
@@ -272,7 +270,7 @@ export default function AdminFasilitasPage() {
     try {
       const token = getToken();
 
-      const res = await fetch(`${API_FASILITAS_BASE}/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fasilitas/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -366,17 +364,16 @@ export default function AdminFasilitasPage() {
         <nav className="flex-1">
           <ul className="space-y-2">
             {[
-              { name: "Dashboard", href: "/admin/dashboard" },
-              { name: "Paket Wisata", href: "/admin/paket-wisata" },
-              {
-                name: "Paket Wisata Luar Kota",
-                href: "/admin/paket-wisata-luar-kota",
-              },
-              { name: "Fasilitas", href: "/admin/fasilitas" },
-              { name: "Supir", href: "/admin/supir" },
-              { name: "Armada", href: "/admin/armada" },
-              { name: "Booking", href: "/admin/booking" },
-              { name: "Pesanan", href: "/admin/pesanan" },
+            { name: "Dashboard", href: "/admin/dashboard" },
+            { name: "Report Booking", href: "/admin/report/bookings" },
+            { name: "Report Refuns", href: "/admin/report/refund" },
+            { name: "Paket Wisata", href: "/admin/paket-wisata" },
+            { name: "Fasilitas", href: "/admin/fasilitas" },
+            { name: "Supir", href: "/admin/supir" },
+            { name: "Armada", href: "/admin/armada" },
+            { name: "Booking", href: "/admin/booking" },
+            { name: "Pengguna", href: "/admin/user" },
+            { name: "Refund", href: "/admin/refund" },
             ].map((link) => (
               <li key={link.name}>
                 <a

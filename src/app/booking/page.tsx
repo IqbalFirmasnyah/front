@@ -133,7 +133,7 @@ function BookingPageClient() {
 
   // Endpoint
   const endpoint = useMemo(() => {
-    const baseUrl = "${process.env.NEXT_PUBLIC_API_URL}";
+    const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
     if (customRuteId) return `${baseUrl}/booking/custom-rute-options?customRuteId=${customRuteId}`;
     if (dropoffId)
       return `${baseUrl}/booking/options?dropoffId=${dropoffId}${
@@ -331,7 +331,7 @@ function BookingPageClient() {
     try {
       await toast.promise(
         (async () => {
-          const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/booking", {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

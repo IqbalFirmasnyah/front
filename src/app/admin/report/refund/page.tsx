@@ -11,7 +11,7 @@ import { Separator } from '@/app/components/ui/separator';
 import { Toaster, toast } from 'sonner';
 import { FileDown, BarChart2, Calendar, Filter } from 'lucide-react';
 
-const API_BASE = '${process.env.NEXT_PUBLIC_API_URL}';
+
 
 type RefundRow = {
   kodeRefund: string;
@@ -96,7 +96,7 @@ function RefundsReportContent() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/reports/refunds?${buildQS()}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/refunds?${buildQS()}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
@@ -143,7 +143,7 @@ function RefundsReportContent() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/reports/refunds.pdf?${buildQS()}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/refunds.pdf?${buildQS()}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/pdf' },
       });
       if (!res.ok) {

@@ -291,14 +291,16 @@ export default function AdminPaketWisataPage() {
         <nav className="flex-1">
           <ul className="space-y-2">
             {[
-              { name: 'Dashboard', href: '/admin/dashboard' },
-              { name: 'Paket Wisata', href: '/admin/paket-wisata' },
-              { name: 'Paket Wisata Luar Kota', href: '/admin/paket-luar-kota' },
-              { name: 'Fasilitas', href: '/admin/fasilitas' },
-              { name: 'Supir', href: '/admin/supir' },
-              { name: 'Armada', href: '/admin/armada' },
-              { name: 'Booking', href: '/admin/booking' },
-              { name: 'Pesanan', href: '/admin/pesanan' },
+               { name: "Dashboard", href: "/admin/dashboard" },
+               { name: "Report Booking", href: "/admin/report/bookings" },
+               { name: "Report Refuns", href: "/admin/report/refund" },
+               { name: "Paket Wisata", href: "/admin/paket-wisata" },
+               { name: "Fasilitas", href: "/admin/fasilitas" },
+               { name: "Supir", href: "/admin/supir" },
+               { name: "Armada", href: "/admin/armada" },
+               { name: "Booking", href: "/admin/booking" },
+               { name: "Pengguna", href: "/admin/user" },
+               { name: "Refund", href: "/admin/refund" },
             ].map((link) => (
               <li key={link.name}>
                 <a

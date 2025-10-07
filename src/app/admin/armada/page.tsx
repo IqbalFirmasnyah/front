@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
+import { useEffect, useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 
-import ArmadaTable from './components/ArmadaTable'; 
-import ArmadaForm from './components/ArmadaForm'; // Asumsikan Anda memiliki ArmadaForm yang berfungsi
-import UploadImageModal from './components/UploadImageModal';
-import { Armada, Meta, StatusArmada } from '../types/Armada'; // Sesuaikan path
+import ArmadaTable from "./components/ArmadaTable";
+import ArmadaForm from "./components/ArmadaForm"; // Asumsikan Anda memiliki ArmadaForm yang berfungsi
+import UploadImageModal from "./components/UploadImageModal";
+import { Armada, Meta, StatusArmada } from "../types/Armada"; // Sesuaikan path
 
 // Definisikan interface untuk payload JWT
 interface DecodedToken {
-  sub: number; 
+  sub: number;
   username: string;
-  role: string; 
+  role: string;
   namaLengkap: string;
-  adminRole?: string; 
-  exp: number; 
+  adminRole?: string;
+  exp: number;
 }
 
 export default function AdminArmadaPage() {
@@ -24,13 +24,18 @@ export default function AdminArmadaPage() {
   const pathname = usePathname();
 
   const [armadas, setArmadas] = useState<Armada[]>([]);
-  const [meta, setMeta] = useState<Meta>({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [meta, setMeta] = useState<Meta>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingArmada, setEditingArmada] = useState<Armada | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  
+
   // State untuk Unggah Foto
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [armadaToUpload, setArmadaToUpload] = useState<Armada | null>(null);
@@ -40,7 +45,12 @@ export default function AdminArmadaPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<{ status?: StatusArmada; search?: string; page?: number; limit?: number }>({
+  const [filters, setFilters] = useState<{
+    status?: StatusArmada;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }>({
     page: 1,
     limit: 10,
   });
@@ -49,26 +59,26 @@ export default function AdminArmadaPage() {
   useEffect(() => {
     const checkAuthAndLoadUser = async () => {
       setAuthLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        setAuthError('Anda belum login atau sesi telah berakhir.');
-        router.push('/login');
+        setAuthError("Anda belum login atau sesi telah berakhir.");
+        router.push("/login");
         setAuthLoading(false);
         return;
       }
       try {
         const decoded: DecodedToken = jwtDecode(token);
         if (decoded.exp * 1000 < Date.now()) {
-          localStorage.removeItem('token');
-          setAuthError('Sesi Anda telah berakhir. Silakan login kembali.');
-          router.push('/login');
+          localStorage.removeItem("token");
+          setAuthError("Sesi Anda telah berakhir. Silakan login kembali.");
+          router.push("/login");
           return;
         }
         setLoggedInUser(decoded);
       } catch (err: any) {
-        localStorage.removeItem('token');
-        setAuthError('Token tidak valid. Silakan login kembali.');
-        router.push('/login');
+        localStorage.removeItem("token");
+        setAuthError("Token tidak valid. Silakan login kembali.");
+        router.push("/login");
       } finally {
         setAuthLoading(false);
       }
@@ -79,33 +89,47 @@ export default function AdminArmadaPage() {
   // --- 2. FETCH DATA (READ) ---
   const fetchArmadas = useCallback(async () => {
     if (authLoading || authError || !loggedInUser) {
-        return;
+      return;
     }
 
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      const queryString = new URLSearchParams(filters as Record<string, string>).toString();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/armada/all?${queryString}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const token = localStorage.getItem("token");
+      const queryString = new URLSearchParams(
+        filters as Record<string, string>
+      ).toString();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/armada/all?${queryString}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!res.ok) {
         const errorData = await res.json();
         if (res.status === 401 || res.status === 403) {
-            router.push('/login');
-        } 
-        throw new Error(errorData.message || `Gagal mengambil data armada (${res.status})`);
+          router.push("/login");
+        }
+        throw new Error(
+          errorData.message || `Gagal mengambil data armada (${res.status})`
+        );
       }
 
       const result = await res.json();
       setArmadas(result.data || []);
-      setMeta(result.meta || { total: result.data?.length || 0, page: 1, limit: 10, totalPages: 1 }); // Sesuaikan jika API tidak mengirim meta
+      setMeta(
+        result.meta || {
+          total: result.data?.length || 0,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        }
+      ); // Sesuaikan jika API tidak mengirim meta
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -115,30 +139,30 @@ export default function AdminArmadaPage() {
 
   useEffect(() => {
     if (!authLoading && !authError && loggedInUser) {
-        fetchArmadas();
+      fetchArmadas();
     }
   }, [fetchArmadas, authLoading, authError, loggedInUser]);
 
   // --- 3. CRUD HANDLERS ---
-  
+
   // CREATE & UPDATE
   const handleFormSubmit = async (formData: any) => {
     setFormError(null);
-    setLoading(true); 
+    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Token tidak ditemukan.');
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Token tidak ditemukan.");
 
-      const url = editingArmada ? 
-        `${process.env.NEXT_PUBLIC_API_URL}/armada/${editingArmada.armadaId}` : 
-        '${process.env.NEXT_PUBLIC_API_URL}/armada/add';
-      const method = editingArmada ? 'PUT' : 'POST';
+      const url = editingArmada
+        ? `${process.env.NEXT_PUBLIC_API_URL}/armada/${editingArmada.armadaId}`
+        : "${process.env.NEXT_PUBLIC_API_URL}/armada/add";
+      const method = editingArmada ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
@@ -146,13 +170,15 @@ export default function AdminArmadaPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || 'Operasi gagal.');
+        throw new Error(data.message || data.error || "Operasi gagal.");
       }
 
       setShowForm(false);
       setEditingArmada(null);
-      await fetchArmadas(); 
-      setError(`Armada berhasil di${editingArmada ? 'perbarui' : 'tambahkan'}.`);
+      await fetchArmadas();
+      setError(
+        `Armada berhasil di${editingArmada ? "perbarui" : "tambahkan"}.`
+      );
     } catch (err: any) {
       setFormError(err.message);
     } finally {
@@ -162,46 +188,58 @@ export default function AdminArmadaPage() {
 
   // DELETE
   const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus armada ini? Tindakan ini tidak dapat dibatalkan.')) return;
-    
-    setLoading(true); 
+    if (
+      !confirm(
+        "Apakah Anda yakin ingin menghapus armada ini? Tindakan ini tidak dapat dibatalkan."
+      )
+    )
+      return;
+
+    setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Token tidak ditemukan.');
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Token tidak ditemukan.");
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/armada/${id}`, {
-        method: 'DELETE',
-        headers: { 
-            'Authorization': `Bearer ${token}` 
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/armada/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || `Gagal menghapus armada (${res.status})`);
+        throw new Error(
+          data.message || data.error || `Gagal menghapus armada (${res.status})`
+        );
       }
-      
-      setError(`Armada ID ${id} berhasil dihapus.`); 
-      await fetchArmadas(); 
+
+      setError(`Armada ID ${id} berhasil dihapus.`);
+      await fetchArmadas();
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false); 
-      setTimeout(() => setError(null), 5000); 
+      setLoading(false);
+      setTimeout(() => setError(null), 5000);
     }
   };
 
-
   // --- 4. FORM & MODAL CONTROLS ---
 
-  const handlePageChange = (page: number) => { 
-    setFilters(prev => ({ ...prev, page }));
+  const handlePageChange = (page: number) => {
+    setFilters((prev) => ({ ...prev, page }));
   };
 
-  const handleFilterChange = (newFilters: { status?: StatusArmada; search?: string }) => { 
-    setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
+  const handleFilterChange = (newFilters: {
+    status?: StatusArmada;
+    search?: string;
+  }) => {
+    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
   };
 
   const handleAddClick = () => {
@@ -216,17 +254,17 @@ export default function AdminArmadaPage() {
     setShowForm(true);
   };
 
-  const handleCancelForm = () => { 
+  const handleCancelForm = () => {
     setShowForm(false);
     setEditingArmada(null);
     setFormError(null);
   };
 
-  const handleLogout = () => { 
-    localStorage.removeItem('token');
-    router.push('/login');
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/login");
   };
-  
+
   // HANDLERS UNGGAH FOTO
   const handleUploadImageClick = (armada: Armada) => {
     setArmadaToUpload(armada);
@@ -241,10 +279,9 @@ export default function AdminArmadaPage() {
 
   const handleUploadSuccess = async (armadaId: number) => {
     setError(`Foto armada ID ${armadaId} berhasil diunggah!`);
-    await fetchArmadas(); 
-    setTimeout(() => setError(null), 5000); 
+    await fetchArmadas();
+    setTimeout(() => setError(null), 5000);
   };
-  
 
   // --- 5. RENDER UTAMA ---
 
@@ -262,7 +299,7 @@ export default function AdminArmadaPage() {
         <p className="text-xl font-semibold mb-4">Akses Ditolak!</p>
         <p className="text-lg text-center">{authError}</p>
         <button
-          onClick={() => router.push('/login')}
+          onClick={() => router.push("/login")}
           className="mt-6 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300"
         >
           Kembali ke Login
@@ -275,19 +312,30 @@ export default function AdminArmadaPage() {
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar Admin */}
       <aside className="w-64 bg-gray-800 text-white flex flex-col p-4 shadow-lg">
-        <div className="text-2xl font-bold text-orange-400 mb-8 text-center">Admin Panel</div>
+        <div className="text-2xl font-bold text-orange-400 mb-8 text-center">
+          Admin Panel
+        </div>
         <nav className="flex-1">
           <ul className="space-y-2">
             {[
-              { name: 'Dashboard', href: '/admin/dashboard' },
-              { name: 'Armada', href: '/admin/armada' },
-              // ... link lainnya
+              { name: "Dashboard", href: "/admin/dashboard" },
+              { name: "Report Booking", href: "/admin/report/bookings" },
+              { name: "Report Refuns", href: "/admin/report/refund" },
+              { name: "Paket Wisata", href: "/admin/paket-wisata" },
+              { name: "Fasilitas", href: "/admin/fasilitas" },
+              { name: "Supir", href: "/admin/supir" },
+              { name: "Armada", href: "/admin/armada" },
+              { name: "Booking", href: "/admin/booking" },
+              { name: "Pengguna", href: "/admin/user" },
+              { name: "Refund", href: "/admin/refund" },
             ].map((link) => (
               <li key={link.name}>
                 <a
                   href={link.href}
                   className={`block py-2 px-4 rounded-lg transition duration-200 ${
-                    pathname === link.href ? 'bg-orange-500 text-white shadow-md' : 'hover:bg-gray-700 text-gray-300'
+                    pathname === link.href
+                      ? "bg-orange-500 text-white shadow-md"
+                      : "hover:bg-gray-700 text-gray-300"
                   }`}
                 >
                   {link.name}
@@ -298,7 +346,9 @@ export default function AdminArmadaPage() {
         </nav>
         <div className="mt-auto pt-4 border-t border-gray-700">
           <p className="text-sm text-gray-400 mb-2">Logged in as:</p>
-          <p className="font-semibold text-orange-400">{loggedInUser?.namaLengkap || 'Admin'}</p>
+          <p className="font-semibold text-orange-400">
+            {loggedInUser?.namaLengkap || "Admin"}
+          </p>
           <button
             onClick={handleLogout}
             className="w-full mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300"
@@ -326,7 +376,15 @@ export default function AdminArmadaPage() {
           </div>
         ) : error ? (
           // Tampilkan pesan error/sukses
-          <div className={`p-4 rounded-lg mb-4 ${error.includes('berhasil') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>{error}</div>
+          <div
+            className={`p-4 rounded-lg mb-4 ${
+              error.includes("berhasil")
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-600"
+            }`}
+          >
+            {error}
+          </div>
         ) : null}
 
         <ArmadaTable
@@ -349,14 +407,14 @@ export default function AdminArmadaPage() {
             error={formError}
           />
         )}
-        
+
         {/* MODAL UNGGAH FOTO */}
         {showUploadModal && armadaToUpload && (
-            <UploadImageModal
-                armada={armadaToUpload}
-                onClose={handleCloseUploadModal}
-                onUploadSuccess={handleUploadSuccess}
-            />
+          <UploadImageModal
+            armada={armadaToUpload}
+            onClose={handleCloseUploadModal}
+            onUploadSuccess={handleUploadSuccess}
+          />
         )}
       </main>
     </div>

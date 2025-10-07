@@ -11,7 +11,7 @@ import { Separator } from '@/app/components/ui/separator';
 import { Toaster, toast } from 'sonner';
 import { FileDown, BarChart2, CalendarRange, Filter, Loader2, MapPin, Users } from 'lucide-react';
 
-const API_BASE = '${process.env.NEXT_PUBLIC_API_URL}';
+
 
 type ReportRow = {
   kode: string;
@@ -103,7 +103,7 @@ function BookingsReportContent() {
         router.push('/login');
         return;
       }
-      const res = await fetch(`${API_BASE}/reports/bookings?${buildQS()}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/bookings?${buildQS()}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
@@ -154,7 +154,7 @@ function BookingsReportContent() {
         router.push('/login');
         return;
       }
-      const res = await fetch(`${API_BASE}/reports/bookings.pdf?${buildQS()}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/bookings.pdf?${buildQS()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/pdf',

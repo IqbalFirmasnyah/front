@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import ImageUploadForm from "../../components/ImageUploadForm";
 import { PaketWisata, DecodedToken } from "../../../types/PaketWisata";
 
-const API_BASE_URL = "${process.env.NEXT_PUBLIC_API_URL}/paket-wisata";
+
 
 type Props = {
   paketId: number;
@@ -63,7 +63,7 @@ export default function ImageUploadPageClient({ paketId }: Props) {
     setError(null);
     try {
       const token = getToken();
-      const res = await fetch(`${API_BASE_URL}/${paketId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/${paketId}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -106,7 +106,7 @@ export default function ImageUploadPageClient({ paketId }: Props) {
         const formData = new FormData();
         files.forEach((file) => formData.append("images", file));
 
-        const res = await fetch(`${API_BASE_URL}/upload-images/${paketId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/upload-images/${paketId}`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -140,7 +140,7 @@ export default function ImageUploadPageClient({ paketId }: Props) {
       try {
         const token = getToken();
         const res = await fetch(
-          `${API_BASE_URL}/delete-image/${paketId}?imageName=${encodeURIComponent(imageName)}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/delete-image/${paketId}?imageName=${encodeURIComponent(imageName)}`,
           {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },

@@ -12,7 +12,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
+const API = process.env.NEXT_PUBLIC_API_URL;
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 /** Cek dukungan push di browser (tanpa bergantung pada state agar tak stale) */

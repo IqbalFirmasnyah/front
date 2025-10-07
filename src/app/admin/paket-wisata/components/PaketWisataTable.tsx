@@ -1,8 +1,25 @@
-"use client"
-import React from 'react';
-import { useRouter } from 'next/navigation'; // Import useRouter
-import { UploadCloud } from 'lucide-react'; // Import ikon untuk upload
-import { PaketWisata, Meta, KategoriPaket, StatusPaket } from '../../types/PaketWisata'; 
+// app/admin/paket-wisata/components/PaketWisataTable.tsx
+"use client";
+
+import React, { useRef } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Search,
+  Filter,
+  Edit,
+  Trash2,
+  UploadCloud,
+  Hash,
+  Tag,
+  MapPin,
+  Banknote,
+  Clock,
+  CheckCircle2,
+  CircleSlash,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react";
+import { PaketWisata, Meta, KategoriPaket, StatusPaket } from "../../types/PaketWisata";
 
 interface PaketWisataTableProps {
   pakets: PaketWisata[];
@@ -11,8 +28,12 @@ interface PaketWisataTableProps {
   onDelete: (id: number) => void;
   onUpdateStatus: (id: number, status: StatusPaket) => void;
   onPageChange: (page: number) => void;
-  onFilterChange: (filters: { kategori?: KategoriPaket; status?: StatusPaket; search?: string }) => void;
-  currentFilters: { kategori?: KategoriPaket; status?: StatusPaket; search?: string }; 
+  onFilterChange: (filters: {
+    kategori?: KategoriPaket;
+    status?: StatusPaket;
+    search?: string;
+  }) => void;
+  currentFilters: { kategori?: KategoriPaket; status?: StatusPaket; search?: string };
 }
 
 const PaketWisataTable: React.FC<PaketWisataTableProps> = ({
@@ -25,134 +46,283 @@ const PaketWisataTable: React.FC<PaketWisataTableProps> = ({
   onFilterChange,
   currentFilters,
 }) => {
-  const router = useRouter(); // Inisialisasi router untuk navigasi
+  const router = useRouter();
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    onFilterChange({ ...currentFilters, [e.target.name]: e.target.value === '' ? undefined : e.target.value });
+  const handleFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    onFilterChange({
+      ...currentFilters,
+      [name]: value === "" ? undefined : (value as any),
+    });
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Debounce search input for better performance on large datasets
     const value = e.target.value;
-    setTimeout(() => {
-        onFilterChange({ ...currentFilters, search: value === '' ? undefined : value });
-    }, 300); // 300ms debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onFilterChange({
+        ...currentFilters,
+        search: value === "" ? undefined : value,
+      });
+    }, 350);
   };
 
   const handleUploadClick = (paketId: number) => {
-    // Navigasi ke halaman upload gambar
     router.push(`/admin/paket-wisata/upload/${paketId}`);
   };
 
+  const renderKategori = (kategori: KategoriPaket | string) => {
+    const k = String(kategori).toLowerCase();
+    if (k === "dalam kota") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+          <Tag className="h-3.5 w-3.5" />
+          Dalam Kota
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200">
+        <Tag className="h-3.5 w-3.5" />
+        Luar Kota
+      </span>
+    );
+  };
+
+  const renderStatus = (status: StatusPaket | string) => {
+    const s = String(status).toLowerCase();
+    if (s === "aktif") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Aktif
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 ring-1 ring-inset ring-zinc-200">
+        <CircleSlash className="h-3.5 w-3.5" />
+        Non Aktif
+      </span>
+    );
+  };
+
+  const IconButton: React.FC<
+    React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "blue" | "red" | "indigo" | "zinc" }
+  > = ({ tone = "blue", className = "", children, ...props }) => {
+    const toneMap = {
+      blue:
+        "text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus-visible:outline-blue-600",
+      red:
+        "text-red-600 hover:text-red-700 hover:bg-red-50 focus-visible:outline-red-600",
+      indigo:
+        "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 focus-visible:outline-indigo-600",
+      zinc:
+        "text-zinc-600 hover:text-zinc-700 hover:bg-zinc-50 focus-visible:outline-zinc-600",
+    } as const;
+    return (
+      <button
+        {...props}
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${toneMap[tone]} ${className}`}
+      >
+        {children}
+      </button>
+    );
+  };
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <div className="mb-4 flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
-        <h2 className="text-xl font-semibold text-gray-800">Daftar Paket Wisata</h2>
-        <div className="flex space-x-2">
-          <select
-            name="kategori"
-            value={currentFilters.kategori || ''}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded-md p-2 text-sm"
-          >
-            <option value="">Semua Kategori</option>
-            <option value="dalam kota">Dalam Kota</option>
-            <option value="luar kota">Luar Kota</option>
-          </select>
-          <select
-            name="status"
-            value={currentFilters.status || ''}
-            onChange={handleFilterChange}
-            className="border border-gray-300 rounded-md p-2 text-sm"
-          >
-            <option value="">Semua Status</option>
-            <option value="aktif">Aktif</option>
-            <option value="non_aktif">Non Aktif</option>
-          </select>
-          <input
-            type="text"
-            name="search"
-            defaultValue={currentFilters.search || ''} // Use defaultValue for debounced input
-            onChange={handleSearchChange}
-            placeholder="Cari paket..."
-            className="border border-gray-300 rounded-md p-2 text-sm"
-          />
+    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      {/* Header + Filters */}
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100">
+            <Tag className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900">Daftar Paket Wisata</h2>
+            <p className="text-xs text-zinc-500">
+              Kelola paket, harga, durasi, dan status publikasi.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              name="search"
+              defaultValue={currentFilters.search || ""}
+              onChange={handleSearchChange}
+              placeholder="Cari nama/lokasi…"
+              className="w-full rounded-xl border border-zinc-300 py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-72"
+            />
+          </div>
+
+          <div className="relative">
+            <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <select
+              name="kategori"
+              value={currentFilters.kategori || ""}
+              onChange={handleFilterChange}
+              className="w-full appearance-none rounded-xl border border-zinc-300 py-2 pl-9 pr-8 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-48"
+            >
+              <option value="">Semua Kategori</option>
+              <option value="dalam kota">Dalam Kota</option>
+              <option value="luar kota">Luar Kota</option>
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+              ▾
+            </span>
+          </div>
+
+          <div className="relative">
+            <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <select
+              name="status"
+              value={currentFilters.status || ""}
+              onChange={handleFilterChange}
+              className="w-full appearance-none rounded-xl border border-zinc-300 py-2 pl-9 pr-8 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-44"
+            >
+              <option value="">Semua Status</option>
+              <option value="aktif">Aktif</option>
+              <option value="non_aktif">Non Aktif</option>
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+              ▾
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* Table */}
       {pakets.length === 0 ? (
-        <p className="text-gray-600 text-center py-4">Tidak ada paket wisata ditemukan.</p>
+        <div className="rounded-xl border border-dashed border-zinc-300 py-12 text-center">
+          <p className="text-zinc-500">Tidak ada paket wisata ditemukan.</p>
+        </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
+          <table className="min-w-full border-separate border-spacing-0">
             <thead>
-              <tr className="bg-gray-100 text-left text-sm font-semibold text-gray-700">
-                <th className="py-3 px-4 border-b">ID</th>
-                <th className="py-3 px-4 border-b">Nama Paket</th>
-                <th className="py-3 px-4 border-b">Kategori</th>
-                <th className="py-3 px-4 border-b">Lokasi</th>
-                <th className="py-3 px-4 border-b">Harga</th>
-                <th className="py-3 px-4 border-b">Durasi</th>
-                <th className="py-3 px-4 border-b">Status</th>
-                <th className="py-3 px-4 border-b">Aksi</th>
+              <tr className="text-left text-[13px] font-semibold text-zinc-600">
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    ID
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  Nama Paket
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  Kategori
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Lokasi
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="h-4 w-4" />
+                    Harga
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Durasi
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  Status
+                </th>
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-4 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                  Aksi
+                </th>
               </tr>
             </thead>
             <tbody>
-              {pakets.map((paket) => (
-                <tr key={paket.paketId} className="hover:bg-gray-50 text-sm text-gray-800">
-                  <td className="py-3 px-4 border-b">{paket.paketId}</td>
-                  <td className="py-3 px-4 border-b">{paket.namaPaket}</td>
-                  <td className="py-3 px-4 border-b capitalize">{paket.kategori}</td>
-                  <td className="py-3 px-4 border-b">{paket.lokasi}</td>
-                  <td className="py-3 px-4 border-b">Rp {paket.harga.toLocaleString('id-ID')}</td>
-                  <td className="py-3 px-4 border-b">{paket.durasiHari} Hari</td>
-                  <td className="py-3 px-4 border-b">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        paket.statusPaket === 'aktif' ? 'bg-green-100 text-green-800' : 'bg-red-110 text-red-800'
-                      } capitalize`}
-                    >
-                      {paket.statusPaket.replace('_', ' ')}
-                    </span>
+              {pakets.map((paket, idx) => (
+                <tr
+                  key={paket.paketId}
+                  className={`
+                    text-sm text-zinc-800 transition-colors
+                    ${idx % 2 === 0 ? "bg-white" : "bg-zinc-50/40"}
+                    hover:bg-blue-50/40
+                  `}
+                >
+                  <td className="border-t border-zinc-200 px-4 py-3">{paket.paketId}</td>
+                  <td className="border-t border-zinc-200 px-4 py-3 font-medium">
+                    {paket.namaPaket}
                   </td>
-                  <td className="py-3 px-4 border-b">
-                    <div className="flex space-x-2 items-center">
-                       {/* Tombol Upload Gambar */}
-                       <button
-                          onClick={() => handleUploadClick(paket.paketId)}
-                          className="text-indigo-600 hover:text-indigo-800 p-1 rounded-md hover:bg-indigo-100 transition duration-150"
-                          title="Upload Gambar"
-                        >
-                          <UploadCloud className="w-5 h-5" />
-                        </button>
-                        
-                      <button
+                  <td className="border-t border-zinc-200 px-4 py-3">
+                    {renderKategori(paket.kategori)}
+                  </td>
+                  <td className="border-t border-zinc-200 px-4 py-3">{paket.lokasi}</td>
+                  <td className="border-t border-zinc-200 px-4 py-3">
+                    Rp {paket.harga.toLocaleString("id-ID")}
+                  </td>
+                  <td className="border-t border-zinc-200 px-4 py-3">
+                    {paket.durasiHari} Hari
+                  </td>
+                  <td className="border-t border-zinc-200 px-4 py-3">
+                    {renderStatus(paket.statusPaket)}
+                  </td>
+                  <td className="border-t border-zinc-200 px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      {/* Upload gambar */}
+                      <IconButton
+                        tone="indigo"
+                        onClick={() => handleUploadClick(paket.paketId)}
+                        title="Upload gambar paket"
+                        aria-label={`Upload gambar paket ${paket.namaPaket}`}
+                      >
+                        <UploadCloud className="h-5 w-5" />
+                      </IconButton>
+
+                      {/* Edit */}
+                      <IconButton
+                        tone="blue"
                         onClick={() => onEdit(paket)}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Edit"
+                        title="Edit paket"
+                        aria-label={`Edit paket ${paket.namaPaket}`}
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-7-9l4 4m-4-4l-9 9V18h4l9-9c1.66-1.66 1.66-4.37 0-6.03l-.12-.12a4.243 4.243 0 00-6.03 0z"></path></svg>
-                      </button>
-                      <button
-                        onClick={() => onUpdateStatus(paket.paketId, paket.statusPaket === 'aktif' ? 'non_aktif' : 'aktif')}
-                        className={`text-sm rounded-full w-5 h-5 flex items-center justify-center ${
-                            paket.statusPaket === 'aktif' ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'
-                        }`}
-                        title={paket.statusPaket === 'aktif' ? 'Non-aktifkan' : 'Aktifkan'}
+                        <Edit className="h-5 w-5" />
+                      </IconButton>
+
+                      {/* Toggle status */}
+                      <IconButton
+                        tone="zinc"
+                        onClick={() =>
+                          onUpdateStatus(
+                            paket.paketId,
+                            paket.statusPaket === "aktif" ? "non_aktif" : "aktif"
+                          )
+                        }
+                        title={paket.statusPaket === "aktif" ? "Non-aktifkan" : "Aktifkan"}
+                        aria-label={`Ubah status paket ${paket.namaPaket}`}
                       >
-                        {paket.statusPaket === 'aktif' ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                        {paket.statusPaket === "aktif" ? (
+                          <ToggleLeft className="h-5 w-5" />
                         ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          <ToggleRight className="h-5 w-5" />
                         )}
-                      </button>
-                      <button
+                      </IconButton>
+
+                      {/* Hapus */}
+                      <IconButton
+                        tone="red"
                         onClick={() => onDelete(paket.paketId)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Hapus"
+                        title="Hapus paket"
+                        aria-label={`Hapus paket ${paket.namaPaket}`}
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                      </button>
+                        <Trash2 className="h-5 w-5" />
+                      </IconButton>
                     </div>
                   </td>
                 </tr>
@@ -162,13 +332,13 @@ const PaketWisataTable: React.FC<PaketWisataTableProps> = ({
         </div>
       )}
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {meta.totalPages > 1 && (
-        <div className="flex justify-center items-center space-x-2 mt-6">
+        <div className="mt-6 flex items-center justify-center gap-1">
           <button
-            onClick={() => onPageChange(meta.page - 1)}
+            onClick={() => onPageChange(Math.max(1, meta.page - 1))}
             disabled={meta.page === 1}
-            className="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+            className="rounded-xl border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
           >
             Previous
           </button>
@@ -176,17 +346,21 @@ const PaketWisataTable: React.FC<PaketWisataTableProps> = ({
             <button
               key={i}
               onClick={() => onPageChange(i + 1)}
-              className={`px-3 py-1 rounded-md ${
-                meta.page === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
+              className={`rounded-xl px-3 py-1.5 text-sm ${
+                meta.page === i + 1
+                  ? "bg-blue-600 text-white"
+                  : "text-zinc-700 hover:bg-zinc-50 border border-zinc-300"
               }`}
             >
               {i + 1}
             </button>
           ))}
           <button
-            onClick={() => onPageChange(meta.page + 1)}
+            onClick={() =>
+              onPageChange(Math.min(meta.totalPages, meta.page + 1))
+            }
             disabled={meta.page === meta.totalPages}
-            className="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+            className="rounded-xl border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
           >
             Next
           </button>
