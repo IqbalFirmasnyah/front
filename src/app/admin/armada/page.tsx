@@ -155,7 +155,7 @@ export default function AdminArmadaPage() {
 
       const url = editingArmada
         ? `${process.env.NEXT_PUBLIC_API_URL}/armada/${editingArmada.armadaId}`
-        : "${process.env.NEXT_PUBLIC_API_URL}/armada/add";
+        : `${process.env.NEXT_PUBLIC_API_URL}/armada/add`;
       const method = editingArmada ? "PUT" : "POST";
 
       const res = await fetch(url, {

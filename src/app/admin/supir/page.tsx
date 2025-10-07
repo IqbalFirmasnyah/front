@@ -148,7 +148,7 @@ export default function AdminSupirPage() {
       if (!token) throw new Error('Token tidak ditemukan.');
 
       let res: Response;
-      const url = editingSupir ? `${process.env.NEXT_PUBLIC_API_URL}/supir/${editingSupir.supirId}` : '${process.env.NEXT_PUBLIC_API_URL}/supir/add';
+      const url = editingSupir ? `${process.env.NEXT_PUBLIC_API_URL}/supir/${editingSupir.supirId}` : `${process.env.NEXT_PUBLIC_API_URL}/supir/add`;
       const method = editingSupir ? 'PUT' : 'POST'; // Gunakan PUT untuk update
 
       res = await fetch(url, {
