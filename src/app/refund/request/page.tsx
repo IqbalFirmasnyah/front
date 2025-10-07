@@ -13,10 +13,6 @@ import { Toaster, toast } from "sonner";
 import { format } from "date-fns";
 import { convertTravelImageUrl } from "@/lib/helper/image_url";
 
-// helper gambar
-// const convertTravelImageUrl = (image: string): string =>
-//   `http://localhost:3001/public/travel-images/${image}`;
-
 type Pembayaran = {
   pembayaranId: number;
   jumlahBayar?: string | number;
@@ -74,13 +70,13 @@ function RefundRequestPageClient() {
   const [detail, setDetail] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // form
   const [alasanRefund, setAlasanRefund] = useState("");
   const [metodeRefund, setMetodeRefund] = useState<"transfer_bank" | "e-wallet" | "cash">("transfer_bank");
   const [rekeningTujuan, setRekeningTujuan] = useState("");
 
+  // ====== Load Detail Booking ======
   useEffect(() => {
     const load = async () => {
       try {
@@ -91,14 +87,12 @@ function RefundRequestPageClient() {
           return;
         }
         if (!bookingId) {
-          const msg = "BookingId tidak ditemukan.";
-          setError(msg);
-          toast.error(msg);
+          toast.error("BookingId tidak ditemukan.");
           setLoading(false);
           return;
         }
 
-        const res = await fetch(`http://localhost:3001/booking/${bookingId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/${bookingId}`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
@@ -131,7 +125,6 @@ function RefundRequestPageClient() {
         toast.success("Detail booking berhasil dimuat.");
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Terjadi kesalahan saat memuat data.";
-        setError(msg);
         toast.error(msg);
       } finally {
         setLoading(false);
@@ -140,6 +133,7 @@ function RefundRequestPageClient() {
     load();
   }, [bookingId, router]);
 
+  // ====== Perhitungan Refund ======
   const { baseTotal, adminCut, finalRefund } = useMemo(() => {
     const base = parseNumber(detail?.pembayaran?.jumlahBayar) || parseNumber(detail?.estimasiHarga);
     const cut = base * 0.1;
@@ -149,10 +143,11 @@ function RefundRequestPageClient() {
 
   useEffect(() => {
     if (detail && baseTotal <= 0) {
-      toast.warning("Nominal dasar tidak terdeteksi. Menggunakan estimasi jika tersedia.");
+      toast.warning("Nominal dasar tidak terdeteksi. Sistem akan menggunakan estimasi jika tersedia.");
     }
   }, [detail, baseTotal]);
 
+  // ====== Info bantu UI ======
   const tripName =
     detail?.paket?.namaPaket ||
     detail?.paketLuarKota?.namaPaket ||
@@ -178,9 +173,9 @@ function RefundRequestPageClient() {
         )}`
       : "-";
 
+  // ====== Submit ======
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -189,21 +184,15 @@ function RefundRequestPageClient() {
       return;
     }
     if (!bookingId) {
-      const msg = "BookingId tidak ditemukan.";
-      setError(msg);
-      toast.error(msg);
+      toast.error("BookingId tidak ditemukan.");
       return;
     }
     if (!alasanRefund.trim()) {
-      const msg = "Alasan refund wajib diisi.";
-      setError(msg);
-      toast.error(msg);
+      toast.error("Alasan refund wajib diisi.");
       return;
     }
     if (metodeRefund !== "cash" && !rekeningTujuan.trim()) {
-      const msg = "Rekening/E-Wallet tujuan wajib diisi.";
-      setError(msg);
-      toast.error(msg);
+      toast.error("Rekening/E-Wallet tujuan wajib diisi.");
       return;
     }
 
@@ -212,7 +201,7 @@ function RefundRequestPageClient() {
     try {
       await toast.promise(
         (async () => {
-          const res = await fetch(`http://localhost:3001/refunds/booking/${bookingId}`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds/booking/${bookingId}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -241,12 +230,20 @@ function RefundRequestPageClient() {
       router.push("/my-booking");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal mengajukan refund.";
-      setError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
+  // ====== Notifikasi perubahan metode ======
+  useEffect(() => {
+    if (metodeRefund === "cash") {
+      toast.info("Metode cash dipilih. Data rekening tidak diperlukan.");
+    }
+  }, [metodeRefund]);
+
+  // ====== Render ======
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -270,7 +267,8 @@ function RefundRequestPageClient() {
     );
   }
 
-  if (error && !detail) {
+  if (!detail) {
+    // fallback UI jika detail gagal (toast sudah tampil di atas)
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -278,7 +276,7 @@ function RefundRequestPageClient() {
           <div className="container mx-auto px-4 text-center py-16">
             <div className="text-6xl mb-4">⚠️</div>
             <h3 className="text-2xl font-bold mb-2">Terjadi Kesalahan</h3>
-            <p className="text-red-600 mb-4">{error}</p>
+            <p className="text-gray-600 mb-4">Detail booking tidak tersedia.</p>
             <Button onClick={() => window.location.reload()} variant="ocean" className="text-black">
               Muat Ulang
             </Button>
@@ -378,12 +376,12 @@ function RefundRequestPageClient() {
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="rounded-md border p-3">
                       <div className="text-xs text-muted-foreground">Kode Booking</div>
-                      <div className="font-semibold">{detail?.kodeBooking}</div>
+                      <div className="font-semibold">{detail.kodeBooking}</div>
                     </div>
                     <div className="rounded-md border p-3">
                       <div className="text-xs text-muted-foreground">Nominal Dasar</div>
                       <div className="font-semibold">
-                        {detail?.pembayaran?.jumlahBayar ? "Pembayaran" : "Estimasi Harga"}
+                        {detail.pembayaran?.jumlahBayar ? "Pembayaran" : "Estimasi Harga"}
                       </div>
                     </div>
                   </div>
@@ -414,19 +412,27 @@ function RefundRequestPageClient() {
                   <CardTitle>Form Pengajuan Refund</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {error && (
-                      <div className="flex items-center bg-red-50 border border-red-200 rounded p-3 text-red-600 text-sm">
-                        <AlertCircle className="h-5 w-5 mr-2" />
-                        {error}
-                      </div>
-                    )}
+                  <form
+                    onSubmit={(e) => {
+                      // beritahu user kalau form sedang diproses
+                      if (!submitting) toast.info("Memeriksa data refund...");
+                      handleSubmit(e);
+                    }}
+                    className="space-y-4"
+                  >
+                    {/* tidak perlu kartu error; semua lewat toast */}
 
                     <div>
                       <Label className="mb-1 block">Alasan Refund</Label>
                       <textarea
                         value={alasanRefund}
-                        onChange={(e) => setAlasanRefund(e.target.value)}
+                        onChange={(e) => {
+                          setAlasanRefund(e.target.value);
+                          if (e.target.value.length > 0) {
+                            // beri feedback ringan saat user mulai mengisi
+                            toast.dismiss(); // bersihkan toast lama biar nggak numpuk
+                          }
+                        }}
                         className="w-full border rounded p-2 min-h-[90px]"
                         placeholder="Tulis alasan pengajuan refund"
                         required
@@ -437,9 +443,15 @@ function RefundRequestPageClient() {
                       <Label className="mb-1 block">Metode Refund</Label>
                       <select
                         value={metodeRefund}
-                        onChange={(e) =>
-                          setMetodeRefund(e.target.value as "transfer_bank" | "e-wallet" | "cash")
-                        }
+                        onChange={(e) => {
+                          const val = e.target.value as "transfer_bank" | "e-wallet" | "cash";
+                          setMetodeRefund(val);
+                          if (val === "cash") {
+                            toast.info("Metode cash dipilih. Data rekening tidak diperlukan.");
+                          } else {
+                            toast.info("Metode non-tunai dipilih. Lengkapi rekening/E-Wallet tujuan.");
+                          }
+                        }}
                         className="w-full border rounded p-2"
                       >
                         <option value="transfer_bank">Transfer Bank</option>
@@ -458,6 +470,11 @@ function RefundRequestPageClient() {
                           className="w-full border rounded p-2"
                           placeholder="Nama Bank / E-Wallet + No. Rekening"
                           required
+                          onBlur={() => {
+                            if (rekeningTujuan.trim().length < 6) {
+                              toast.warning("Mohon masukkan data rekening/e-wallet yang valid.");
+                            }
+                          }}
                         />
                       </div>
                     )}

@@ -108,7 +108,7 @@ export default function AdminBookingPage() {
       }
       const queryString = new URLSearchParams(stringifiedFilters).toString();
 
-      const res = await fetch(`http://localhost:3001/booking?${queryString}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking?${queryString}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ export default function AdminBookingPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Token tidak ditemukan.');
 
-      const res = await fetch(`http://localhost:3001/booking/${id}/status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ export default function AdminBookingPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Token tidak ditemukan.');
 
-      const res = await fetch(`http://localhost:3001/booking/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -211,7 +211,7 @@ export default function AdminBookingPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Admin token not found.');
 
-      const res = await fetch(`http://localhost:3001/reschedule/${rescheduleId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reschedule/${rescheduleId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

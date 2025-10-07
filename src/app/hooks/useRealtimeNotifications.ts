@@ -63,7 +63,7 @@ export function useRealtimeNotifications(jwt?: string | null) {
       return undefined;
     }
 
-    const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3001'; // ⬅️ SESUAIKAN dgn backend kamu (logmu pakai 3001)
+    const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? '${process.env.NEXT_PUBLIC_API_URL}'; // ⬅️ SESUAIKAN dgn backend kamu (logmu pakai 3001)
     console.log('[WS] connecting to:', WS_URL);
 
     const socket: Socket = io(WS_URL, {

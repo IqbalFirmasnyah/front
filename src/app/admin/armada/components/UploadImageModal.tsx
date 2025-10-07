@@ -53,7 +53,7 @@ const UploadImageModal: React.FC<UploadImageModalProps> = ({ armada, onClose, on
       // 'image' harus sama dengan field name di FileInterceptor controller Anda
       formData.append('image', file); 
 
-      const res = await fetch(`http://localhost:3001/armada/upload-image/${armada.armadaId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/armada/upload-image/${armada.armadaId}`, {
         method: 'POST',
         headers: { 
             'Authorization': `Bearer ${token}` 

@@ -59,7 +59,7 @@ interface UserRow {
 // =====================
 // Helpers
 // =====================
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
 
 function toMonthKey(dateStr?: string) {
   if (!dateStr) return "Unknown";

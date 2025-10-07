@@ -74,13 +74,10 @@ const getPriceMode = (
   },
   itemDetail: ItemDetail | null
 ): PriceMode => {
-  if (params.dropoffId) return PriceMode.FLAT;            // dropoff = flat
+  if (params.dropoffId) return PriceMode.PER_PESERTA;            // dropoff = flat
   if (params.customRuteId) return PriceMode.PER_PESERTA;  // custom = per peserta
   if (params.paketId) return PriceMode.PER_PESERTA;
   if (params.paketLuarKotaId) return PriceMode.PER_PESERTA;
-
-  const jenis = itemDetail?.jenisFasilitas || itemDetail?.fasilitas?.jenisFasilitas;
-  if (jenis === "dropoff") return PriceMode.FLAT;
   return PriceMode.PER_PESERTA;
 };
 
@@ -136,7 +133,7 @@ function BookingPageClient() {
 
   // Endpoint
   const endpoint = useMemo(() => {
-    const baseUrl = "http://localhost:3001";
+    const baseUrl = "${process.env.NEXT_PUBLIC_API_URL}";
     if (customRuteId) return `${baseUrl}/booking/custom-rute-options?customRuteId=${customRuteId}`;
     if (dropoffId)
       return `${baseUrl}/booking/options?dropoffId=${dropoffId}${
@@ -236,13 +233,13 @@ function BookingPageClient() {
 
         const [armadaRes, supirRes] = await Promise.all([
           fetch(
-            `http://localhost:3001/armada/available-armada?start=${encodeURIComponent(
+            `${process.env.NEXT_PUBLIC_API_URL}/armada/available-armada?start=${encodeURIComponent(
               startISO
             )}&end=${encodeURIComponent(endISO)}`,
             { headers: { Authorization: `Bearer ${token}` } }
           ),
           fetch(
-            `http://localhost:3001/supir/available-supir?start=${encodeURIComponent(
+            `${process.env.NEXT_PUBLIC_API_URL}/supir/available-supir?start=${encodeURIComponent(
               startISO
             )}&end=${encodeURIComponent(endISO)}`,
             { headers: { Authorization: `Bearer ${token}` } }
@@ -334,7 +331,7 @@ function BookingPageClient() {
     try {
       await toast.promise(
         (async () => {
-          const res = await fetch("http://localhost:3001/booking", {
+          const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/booking", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

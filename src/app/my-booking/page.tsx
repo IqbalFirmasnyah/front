@@ -8,6 +8,7 @@ import { Button } from "@/app/components/ui/button";
 import Header from "@/app/components/Header";
 import { usePayment } from "../hooks/usePayment";
 import BookingCard from "@/app/components/BookingCard";
+import { Toaster, toast } from "sonner";
 
 interface Booking {
   bookingId: number;
@@ -57,11 +58,12 @@ export default function MyBookingsPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
+        toast.info("Silakan login terlebih dahulu.");
         router.push("/login");
         throw new Error("Token tidak ditemukan. Harap login ulang.");
       }
 
-      const res = await fetch(`http://localhost:3001/booking/my-bookings`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/my-bookings`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -78,8 +80,11 @@ export default function MyBookingsPage() {
 
       const json = await res.json();
       setBookings(json.data || []);
+      toast.success("Data booking berhasil dimuat.");
     } catch (err: any) {
-      setError(err.message || "Gagal memuat data booking.");
+      const msg = err.message || "Gagal memuat data booking.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -108,18 +113,23 @@ export default function MyBookingsPage() {
       const paymentData = await createPayment(bookingId);
       if (!paymentData) throw new Error("Gagal membuat transaksi pembayaran");
 
+      toast.info("Membuka pembayaran...");
       processPayment(
         paymentData.snapToken,
         () => {
+          toast.success("Pembayaran selesai / diperbarui.");
           getMyBookings();
         },
         (error) => {
           console.error("Payment error:", error);
+          toast.error("Terjadi kesalahan saat memproses pembayaran.");
         }
       );
     } catch (err: any) {
       console.error("Payment process error:", err);
-      setError(`Gagal memproses pembayaran: ${err.message}`);
+      const msg = `Gagal memproses pembayaran: ${err.message}`;
+      setError(msg);
+      toast.error(msg);
     } finally {
       setProcessingPayment(null);
     }
@@ -128,18 +138,19 @@ export default function MyBookingsPage() {
   const handleRefund = async (booking: Booking) => {
     try {
       if (!booking.pembayaran?.pembayaranId) {
-        alert("Data pembayaran tidak ditemukan untuk booking ini.");
+        toast.error("Data pembayaran tidak ditemukan untuk booking ini.");
         return;
       }
 
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Anda belum login. Silakan login terlebih dahulu.");
+        toast.info("Anda belum login. Silakan login terlebih dahulu.");
+        router.push("/login");
         return;
       }
 
       const res = await fetch(
-        `http://localhost:3001/refunds/check-booking/${booking.bookingId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/refunds/check-booking/${booking.bookingId}`,
         {
           method: "GET",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -148,7 +159,7 @@ export default function MyBookingsPage() {
 
       const checkResult = await res.json();
       if (!res.ok) {
-        alert(`Pengajuan Ditolak: ${checkResult.message || "Tidak eligible refund."}`);
+        toast.error(`Pengajuan Ditolak: ${checkResult.message || "Tidak eligible refund."}`);
         return;
       }
 
@@ -157,14 +168,16 @@ export default function MyBookingsPage() {
         pembayaranId: booking.pembayaran.pembayaranId.toString(),
       });
 
+      toast.success("Eligible refund. Mengarahkan ke form pengajuan…");
       router.push(`/refund/request?${params.toString()}`);
     } catch (error: any) {
       console.error("Error in handleRefund:", error);
-      alert(error?.message || "Terjadi kesalahan.");
+      toast.error(error?.message || "Terjadi kesalahan.");
     }
   };
 
   const handleReschedule = (booking: Booking) => {
+    toast.info("Mengarahkan ke halaman reschedule…");
     router.push(`/reschedule/request?bookingId=${booking.bookingId}`);
   };
 
@@ -173,6 +186,7 @@ export default function MyBookingsPage() {
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
         <span className="ml-2">Memuat data booking...</span>
+        <Toaster richColors position="top-right" />
       </div>
     );
   }
@@ -187,6 +201,7 @@ export default function MyBookingsPage() {
             Coba Lagi
           </Button>
         </div>
+        <Toaster richColors position="top-right" />
       </div>
     );
   }
@@ -206,7 +221,13 @@ export default function MyBookingsPage() {
               <div className="flex items-center">
                 <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
                 <p className="text-red-700">{paymentError}</p>
-                <button onClick={clearError} className="ml-auto text-red-500 hover:text-red-700">
+                <button
+                  onClick={() => {
+                    toast.dismiss();
+                    clearError();
+                  }}
+                  className="ml-auto text-red-500 hover:text-red-700"
+                >
                   ×
                 </button>
               </div>
@@ -215,28 +236,40 @@ export default function MyBookingsPage() {
 
           <div className="mb-6 flex flex-wrap gap-4">
             <Button
-              onClick={() => setSelectedFilter("all")}
+              onClick={() => {
+                setSelectedFilter("all");
+                toast.info("Menampilkan semua booking");
+              }}
               variant={selectedFilter === "all" ? "ocean" : "outline"}
               className="text-sm font-medium"
             >
               Semua Booking
             </Button>
             <Button
-              onClick={() => setSelectedFilter("paket_wisata")}
+              onClick={() => {
+                setSelectedFilter("paket_wisata");
+                toast.info("Filter: Paket Wisata");
+              }}
               variant={selectedFilter === "paket_wisata" ? "ocean" : "outline"}
               className="text-sm font-medium"
             >
               Paket Wisata
             </Button>
             <Button
-              onClick={() => setSelectedFilter("paket_luar_kota")}
+              onClick={() => {
+                setSelectedFilter("paket_luar_kota");
+                toast.info("Filter: Paket Luar Kota");
+              }}
               variant={selectedFilter === "paket_luar_kota" ? "ocean" : "outline"}
               className="text-sm font-medium"
             >
               Paket Luar Kota
             </Button>
             <Button
-              onClick={() => setSelectedFilter("fasilitas")}
+              onClick={() => {
+                setSelectedFilter("fasilitas");
+                toast.info("Filter: Fasilitas");
+              }}
               variant={selectedFilter === "fasilitas" ? "ocean" : "outline"}
               className="text-sm font-medium"
             >
@@ -252,7 +285,14 @@ export default function MyBookingsPage() {
                 <p className="text-muted-foreground mb-6">
                   Anda belum memiliki booking apapun. Mari mulai petualangan Anda!
                 </p>
-                <Button onClick={() => router.push("/paket-wisata")} variant="ocean" size="lg">
+                <Button
+                  onClick={() => {
+                    toast.info("Membuka daftar paket wisata…");
+                    router.push("/paket-wisata");
+                  }}
+                  variant="ocean"
+                  size="lg"
+                >
                   Lihat Paket Wisata
                 </Button>
               </CardContent>
@@ -280,6 +320,8 @@ export default function MyBookingsPage() {
           &copy; {new Date().getFullYear()} Jelajah Tour & Travel. All rights reserved.
         </div>
       </footer>
+
+      <Toaster richColors position="top-right" />
     </div>
   );
 }

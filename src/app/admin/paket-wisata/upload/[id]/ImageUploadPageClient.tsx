@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import ImageUploadForm from "../../components/ImageUploadForm";
 import { PaketWisata, DecodedToken } from "../../../types/PaketWisata";
 
-const API_BASE_URL = "http://localhost:3001/paket-wisata";
+const API_BASE_URL = "${process.env.NEXT_PUBLIC_API_URL}/paket-wisata";
 
 type Props = {
   paketId: number;

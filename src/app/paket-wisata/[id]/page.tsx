@@ -57,7 +57,7 @@ export default function PaketWisataDetailPage() {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Token tidak ditemukan");
 
-        const res = await fetch(`http://localhost:3001/paket-wisata/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });

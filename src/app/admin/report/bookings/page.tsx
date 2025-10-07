@@ -11,7 +11,7 @@ import { Separator } from '@/app/components/ui/separator';
 import { Toaster, toast } from 'sonner';
 import { FileDown, BarChart2, CalendarRange, Filter, Loader2, MapPin, Users } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3001';
+const API_BASE = '${process.env.NEXT_PUBLIC_API_URL}';
 
 type ReportRow = {
   kode: string;

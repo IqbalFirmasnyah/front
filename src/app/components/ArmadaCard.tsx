@@ -24,7 +24,7 @@ export interface Armada {
 // Jika punya helper project:
 // import { convertCarImageUrl } from "@/lib/helper/image_url";
 const convertCarImageUrl = (fileName?: string) =>
-  fileName ? `http://localhost:3001/public/car-images/${fileName}` : undefined;
+  fileName ? `${process.env.NEXT_PUBLIC_API_URL}/public/car-images/${fileName}` : undefined;
 
 const PLACEHOLDER =
   "https://via.placeholder.com/800x450.png?text=No+Image+Available";

@@ -23,12 +23,9 @@ import { Toaster, toast } from "sonner";
 import { format } from "date-fns";
 import { convertTravelImageUrl } from "@/lib/helper/image_url";
 
-const API_BASE_URL = "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "${process.env.NEXT_PUBLIC_API_URL}";
 
-// gambar
-// const convertTravelImageUrl = (image: string): string =>
-//   `http://localhost:3001/public/travel-images/${image}`;
-
+/* ===================== Types ===================== */
 interface BookingDetail {
   bookingId: number;
   kodeBooking: string;
@@ -47,6 +44,18 @@ interface CreateRescheduleDto {
   alasan: string;
 }
 
+/* ===================== UTC Helpers ===================== */
+function toUTCDateOnly(d: Date) {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+function diffDaysUTC(later: Date, earlier: Date) {
+  const msInDay = 1000 * 60 * 60 * 24;
+  const a = toUTCDateOnly(later).getTime();
+  const b = toUTCDateOnly(earlier).getTime();
+  return Math.floor((a - b) / msInDay);
+}
+
+/* ===================== API ===================== */
 async function validateRescheduleApi(bookingId: number, tanggalBaru: string, token: string) {
   const res = await fetch(`${API_BASE_URL}/reschedule/validate/${bookingId}`, {
     method: "POST",
@@ -58,7 +67,7 @@ async function validateRescheduleApi(bookingId: number, tanggalBaru: string, tok
   return result;
 }
 
-/** ------ Page wrapper: wajib Suspense ------ */
+/* ===================== Page wrapper ===================== */
 export default function Page() {
   return (
     <Suspense fallback={<div className="min-h-screen" />}>
@@ -67,7 +76,7 @@ export default function Page() {
   );
 }
 
-/** ------ Client component yang memakai useSearchParams ------ */
+/* ===================== Client Component ===================== */
 function RescheduleRequestPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -80,9 +89,9 @@ function RescheduleRequestPageClient() {
   const [tanggalBaru, setTanggalBaru] = useState("");
   const [alasan, setAlasan] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
 
+  // ======== Fetch Booking Detail ========
   useEffect(() => {
     const fetchBookingDetails = async () => {
       try {
@@ -136,6 +145,7 @@ function RescheduleRequestPageClient() {
     fetchBookingDetails();
   }, [bookingIdParam, router]);
 
+  // ======== Derived UI data ========
   const tripName =
     detail?.paket?.namaPaket ||
     detail?.paketLuarKota?.namaPaket ||
@@ -161,6 +171,26 @@ function RescheduleRequestPageClient() {
         )}`
       : "-";
 
+  // ======== Policy Windows (UTC, samakan backend) ========
+  const todayUTC = toUTCDateOnly(new Date());
+
+  // minimal tanggal baru = H+2
+  const minNewDateUTC = useMemo(() => {
+    const d = new Date(todayUTC);
+    d.setUTCDate(d.getUTCDate() + 2);
+    return d;
+  }, [todayUTC]);
+  const minNewDateISO = useMemo(() => format(minNewDateUTC, "yyyy-MM-dd"), [minNewDateUTC]);
+
+  // eligible H-4? (today <= T_lama - 4)
+  const eligibleByHMinus4 = useMemo(() => {
+    if (!detail?.tanggalMulaiWisata) return false;
+    const tMulai = new Date(detail.tanggalMulaiWisata);
+    const days = diffDaysUTC(tMulai, new Date());
+    return days >= 4;
+  }, [detail?.tanggalMulaiWisata]);
+
+  // ======== Submit ========
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -188,11 +218,31 @@ function RescheduleRequestPageClient() {
       return;
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tanggalBaruDate = new Date(tanggalBaru);
-    if (tanggalBaruDate < today) {
-      const msg = "Tanggal baru tidak boleh di masa lalu.";
+    // Guard H-4
+    if (!eligibleByHMinus4) {
+      const msg = "Pengajuan reschedule harus dilakukan minimal H-4 sebelum tanggal wisata lama.";
+      setError(msg);
+      toast.error(msg);
+      setSubmitting(false);
+      return;
+    }
+
+    // Guard H+1 & H+2
+    const tBaruUTC = toUTCDateOnly(new Date(tanggalBaru + "T00:00:00.000Z"));
+    const hPlusOne = new Date(todayUTC);
+    hPlusOne.setUTCDate(hPlusOne.getUTCDate() + 1);
+    const hPlusTwo = new Date(todayUTC);
+    hPlusTwo.setUTCDate(hPlusTwo.getUTCDate() + 2);
+
+    if (tBaruUTC.getTime() === toUTCDateOnly(hPlusOne).getTime()) {
+      const msg = "Tanggal baru tidak boleh H+1 dari hari ini. Pilih minimal H+2.";
+      setError(msg);
+      toast.error(msg);
+      setSubmitting(false);
+      return;
+    }
+    if (tBaruUTC.getTime() < toUTCDateOnly(hPlusTwo).getTime()) {
+      const msg = "Tanggal baru minimal H+2 dari hari ini.";
       setError(msg);
       toast.error(msg);
       setSubmitting(false);
@@ -202,20 +252,20 @@ function RescheduleRequestPageClient() {
     try {
       await toast.promise(
         (async () => {
+          // Validasi server
           await validateRescheduleApi(detail.bookingId, tanggalBaru, token);
 
+          // Kirim pengajuan
           const payload: CreateRescheduleDto = {
             bookingId: detail.bookingId,
             tanggalBaru,
             alasan: alasan.trim(),
           };
-
           const res = await fetch(`${API_BASE_URL}/reschedule`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify(payload),
           });
-
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error((data as any).message || "Gagal mengajukan reschedule.");
           return data;
@@ -227,15 +277,15 @@ function RescheduleRequestPageClient() {
         }
       );
 
-      // pindahkan navigasi ke jalur sukses saja
       router.push("/my-booking");
     } catch {
-      // toast sudah menampilkan error
+      // error sudah di-toast
     } finally {
       setSubmitting(false);
     }
   };
 
+  // ======== Render ========
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -375,9 +425,9 @@ function RescheduleRequestPageClient() {
 
                     <div className="mt-3 text-xs text-muted-foreground flex">
                       <Info className="h-4 w-4 mr-2 mt-0.5" />
-                      Pengajuan reschedule tunduk pada ketentuan H-3 (paling lambat 3 hari sebelum
-                      berangkat) dan H+1 (tanggal baru ≥ 1 hari setelah tanggal pengajuan). Sistem
-                      akan memvalidasi saat Anda mengirim.
+                      Kebijakan: <b>H-4</b> (pengajuan paling lambat 4 hari sebelum berangkat)
+                      &nbsp;dan <b>H+2</b> (tanggal baru minimal 2 hari setelah pengajuan;
+                      H+1 tidak diperbolehkan).
                     </div>
                   </div>
 
@@ -400,15 +450,14 @@ function RescheduleRequestPageClient() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground leading-relaxed">
                   <p>
-                    1) <b>H-3</b>: Pengajuan dilakukan paling lambat 3 hari sebelum tanggal
-                    keberangkatan.
+                    1) <b>H-4</b>: Pengajuan dilakukan paling lambat 4 hari sebelum tanggal
+                    keberangkatan lama.
                   </p>
                   <p>
-                    2) <b>H+1</b>: Tanggal perjalanan baru minimal 1 hari setelah tanggal pengajuan.
+                    2) <b>H+2</b>: Tanggal perjalanan baru minimal 2 hari setelah tanggal pengajuan
+                    (<b>H+1 tidak diperbolehkan</b>).
                   </p>
-                  <p>
-                    3) Tergantung ketersediaan armada & supir pada tanggal baru.
-                  </p>
+                  <p>3) Tergantung ketersediaan armada & supir pada tanggal baru.</p>
                 </CardContent>
               </Card>
             </div>
@@ -422,9 +471,17 @@ function RescheduleRequestPageClient() {
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (
-                      <div className="flex items-center bg-red-50 border border-red-200 rounded p-3 text-red-600 text-sm">
-                        <AlertCircle className="h-5 w-5 mr-2" />
+                      <div className="flex items-start bg-red-50 border border-red-200 rounded p-3 text-red-600 text-sm">
+                        <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
                         {error}
+                      </div>
+                    )}
+
+                    {!eligibleByHMinus4 && (
+                      <div className="flex items-start bg-amber-50 border border-amber-200 rounded p-3 text-amber-700 text-sm">
+                        <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
+                        Pengajuan reschedule sudah melewati batas waktu H-4 dari tanggal
+                        keberangkatan lama. Hubungi admin untuk opsi lain.
                       </div>
                     )}
 
@@ -436,11 +493,29 @@ function RescheduleRequestPageClient() {
                         id="tanggalBaru"
                         type="date"
                         value={tanggalBaru}
-                        onChange={(e) => setTanggalBaru(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value; // yyyy-MM-dd
+                          setError(null);
+                          if (val) {
+                            const chosen = toUTCDateOnly(new Date(val + "T00:00:00.000Z"));
+                            const hPlusOne = new Date(todayUTC);
+                            hPlusOne.setUTCDate(hPlusOne.getUTCDate() + 1);
+                            if (chosen.getTime() === toUTCDateOnly(hPlusOne).getTime()) {
+                              setTanggalBaru("");
+                              toast.error("Tanggal baru tidak boleh H+1 dari hari ini. Pilih minimal H+2.");
+                              return;
+                            }
+                          }
+                          setTanggalBaru(val);
+                        }}
                         className="w-full"
                         required
-                        min={format(new Date(), "yyyy-MM-dd")}
+                        min={minNewDateISO} // minimal H+2
+                        disabled={!eligibleByHMinus4}
                       />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Minimal tanggal baru: <b>{format(minNewDateUTC, "dd MMM yyyy")}</b> (H+2).
+                      </p>
                     </div>
 
                     <div>
@@ -454,10 +529,16 @@ function RescheduleRequestPageClient() {
                         rows={4}
                         placeholder="Jelaskan alasan Anda mengajukan reschedule..."
                         required
+                        disabled={!eligibleByHMinus4}
                       />
                     </div>
 
-                    <Button type="submit" className="w-full text-black" variant="ocean" disabled={submitting}>
+                    <Button
+                      type="submit"
+                      className="w-full text-black"
+                      variant="ocean"
+                      disabled={!eligibleByHMinus4 || submitting}
+                    >
                       {submitting ? "Mengajukan..." : "Ajukan Reschedule"}
                     </Button>
                   </form>

@@ -9,7 +9,7 @@ import { convertTravelImageUrl } from "@/lib/helper/image_url";
 
 /** Jika belum punya helper-nya, bisa aktifkan fallback di bawah */
 // const convertTravelImageUrl = (fileName?: string) =>
-//   fileName ? `http://localhost:3001/public/travel-images/${fileName}` : undefined;
+//   fileName ? `${process.env.NEXT_PUBLIC_API_URL}/public/travel-images/${fileName}` : undefined;
 
 export interface TourPackage {
   paketId: number;

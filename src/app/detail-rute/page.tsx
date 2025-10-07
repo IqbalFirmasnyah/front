@@ -23,7 +23,7 @@ export default function DetailRutePage() {
     const fetchRute = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/detail-rute/all", {
+        const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/detail-rute/all", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

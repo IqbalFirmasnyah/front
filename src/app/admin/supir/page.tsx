@@ -101,7 +101,7 @@ export default function AdminSupirPage() {
       }
 
       const queryString = new URLSearchParams(filters as Record<string, string>).toString();
-      const res = await fetch(`http://localhost:3001/supir/all?${queryString}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supir/all?${queryString}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ export default function AdminSupirPage() {
       if (!token) throw new Error('Token tidak ditemukan.');
 
       let res: Response;
-      const url = editingSupir ? `http://localhost:3001/supir/${editingSupir.supirId}` : 'http://localhost:3001/supir/add';
+      const url = editingSupir ? `${process.env.NEXT_PUBLIC_API_URL}/supir/${editingSupir.supirId}` : '${process.env.NEXT_PUBLIC_API_URL}/supir/add';
       const method = editingSupir ? 'PUT' : 'POST'; // Gunakan PUT untuk update
 
       res = await fetch(url, {
@@ -185,7 +185,7 @@ export default function AdminSupirPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Token tidak ditemukan.');
 
-      const res = await fetch(`http://localhost:3001/supir/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supir/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

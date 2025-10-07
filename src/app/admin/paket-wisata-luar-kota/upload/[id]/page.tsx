@@ -11,7 +11,7 @@ import ImageUploadForm from '../../components/ImageUploadForm';
 import { PaketWisataLuarKota } from '@/app/admin/types/PaketWisataLuar'; 
 import { DecodedToken } from '@/app/admin/types/PaketWisataLuar';
 
-const API_BASE_URL = 'http://localhost:3001/paket-wisata-luar-kota';
+const API_BASE_URL = '${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota';
 
 export default function ImageUploadPage() {
   const router = useRouter();

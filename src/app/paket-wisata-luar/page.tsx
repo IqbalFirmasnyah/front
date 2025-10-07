@@ -37,8 +37,8 @@ export default function PaketWisataLuarPage() {
           throw new Error("Token tidak ditemukan. Harap login ulang.");
         }
 
-        // Endpoint: http://localhost:3001/paket-wisata-luar/active
-        const res = await fetch("http://localhost:3001/paket-wisata-luar-kota/all", { // Menggunakan endpoint 'all' yang ada di controller
+        // Endpoint: ${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar/active
+        const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/all", { // Menggunakan endpoint 'all' yang ada di controller
           headers: {
             Authorization: `Bearer ${token}`,
           },

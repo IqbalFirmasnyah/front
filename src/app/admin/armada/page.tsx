@@ -87,7 +87,7 @@ export default function AdminArmadaPage() {
     try {
       const token = localStorage.getItem('token');
       const queryString = new URLSearchParams(filters as Record<string, string>).toString();
-      const res = await fetch(`http://localhost:3001/armada/all?${queryString}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/armada/all?${queryString}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -130,8 +130,8 @@ export default function AdminArmadaPage() {
       if (!token) throw new Error('Token tidak ditemukan.');
 
       const url = editingArmada ? 
-        `http://localhost:3001/armada/${editingArmada.armadaId}` : 
-        'http://localhost:3001/armada/add';
+        `${process.env.NEXT_PUBLIC_API_URL}/armada/${editingArmada.armadaId}` : 
+        '${process.env.NEXT_PUBLIC_API_URL}/armada/add';
       const method = editingArmada ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -170,7 +170,7 @@ export default function AdminArmadaPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Token tidak ditemukan.');
 
-      const res = await fetch(`http://localhost:3001/armada/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/armada/${id}`, {
         method: 'DELETE',
         headers: { 
             'Authorization': `Bearer ${token}` 

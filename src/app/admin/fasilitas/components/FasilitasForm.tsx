@@ -8,7 +8,7 @@ import { X, Upload, Image as ImageIcon } from 'lucide-react'; // Import ikon
 // Pastikan Anda memiliki helper ini atau definisikan di sini
 const convertPackageImageUrl = (images: string) => {
     // Sesuaikan path ini dengan path Multer Anda: './public/package-images'
-    return `http://localhost:3001/public/package-images/${images}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}/public/package-images/${images}`;
 }
 
 interface FasilitasFormProps {

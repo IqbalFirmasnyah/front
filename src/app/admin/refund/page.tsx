@@ -26,7 +26,7 @@ export default function AdminRefundsPage() {
       const token = localStorage.getItem("token");
       if (!token) return router.push("/login");
 
-      const res = await fetch("http://localhost:3001/refunds", {
+      const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/refunds", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -49,7 +49,7 @@ export default function AdminRefundsPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:3001/refunds/${refundId}/${action}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds/${refundId}/${action}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ catatanAdmin: action === "approve" ? "Disetujui admin" : "Ditolak admin" }),

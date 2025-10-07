@@ -22,8 +22,8 @@ interface DecodedToken {
   exp: number;
 }
 
-const API_LUAR_KOTA_BASE = 'http://localhost:3001/paket-wisata-luar-kota';
-const API_FASILITAS_BASE = 'http://localhost:3001/fasilitas';
+const API_LUAR_KOTA_BASE = '${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota';
+const API_FASILITAS_BASE = '${process.env.NEXT_PUBLIC_API_URL}/fasilitas';
 
 export default function AdminFasilitasPage() {
   const router = useRouter();

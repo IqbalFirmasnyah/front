@@ -45,7 +45,7 @@ export const usePayment = () => {
         throw new Error('Token tidak ditemukan. Silakan login kembali.');
       }
 
-      const response = await fetch(`http://localhost:3001/payment/create/${bookingId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/create/${bookingId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -106,7 +106,7 @@ export const usePayment = () => {
         throw new Error('Token tidak ditemukan. Silakan login kembali.');
       }
 
-      const response = await fetch(`http://localhost:3001/payment/status/${paymentId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/status/${paymentId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

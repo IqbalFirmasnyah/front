@@ -57,7 +57,7 @@ export default function DetailPaketPage() {
           return;
         }
 
-        const res = await fetch(`http://localhost:3001/paket-wisata-luar-kota/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',

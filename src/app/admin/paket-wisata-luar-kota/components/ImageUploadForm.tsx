@@ -78,7 +78,7 @@ export default function ImageUploadForm({
   const allImages = [
     ...existingImages.map(name => ({
         name,
-        url: `http://localhost:3001/public/package-images/${name}`,
+        url: `${process.env.NEXT_PUBLIC_API_URL}/public/package-images/${name}`,
         
         isNew: false
     })),

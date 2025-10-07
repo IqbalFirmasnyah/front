@@ -28,7 +28,7 @@ export type Supir = {
 // Jika punya helper sendiri, gunakan:
 // import { convertDriverImageUrl } from "@/lib/helper/image_url";
 const convertDriverImageUrl = (fileName?: string | null) =>
-  fileName ? `http://localhost:3001/public/driver-images/${fileName}` : undefined;
+  fileName ? `${process.env.NEXT_PUBLIC_API_URL}/public/driver-images/${fileName}` : undefined;
 
 const cx = (...x: Array<string | false | null | undefined>) => x.filter(Boolean).join(" ");
 

@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
 
 
-const SOCKET_URL = 'http://localhost:3001'; 
+const SOCKET_URL = '${process.env.NEXT_PUBLIC_API_URL}'; 
 type ClientSocket = Socket<DefaultEventsMap, DefaultEventsMap> | null; 
 
 interface NotificationData {

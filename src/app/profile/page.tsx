@@ -85,7 +85,7 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/auth/profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -176,7 +176,7 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/auth/profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -289,7 +289,7 @@ const ProfilePage = () => {
 
     setChangePwLoading(true);
     try {
-      const res = await fetch("http://localhost:3001/auth/change-password", {
+      const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/auth/change-password", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

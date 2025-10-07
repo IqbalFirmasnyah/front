@@ -1,5 +1,5 @@
 // app/lib/webpush.ts
-const NEST_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'; // sesuaikan
+const NEST_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '${process.env.NEXT_PUBLIC_API_URL}'; // sesuaikan
 
 // helper konversi VAPID key (base64url → Uint8Array)
 function urlBase64ToUint8Array(base64String: string) {

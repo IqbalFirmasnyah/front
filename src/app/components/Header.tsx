@@ -174,7 +174,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
     setLoginError('');
   
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+      const base = process.env.NEXT_PUBLIC_API_URL ?? '${process.env.NEXT_PUBLIC_API_URL}';
       const res = await fetch(`${base}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -249,7 +249,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
 
     setRegisterLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
       const res = await fetch(`${base}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -314,7 +314,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
 
     setForgotLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
       const res = await fetch(`${base}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -341,7 +341,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = "home" }) => {
 
     setForgotLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "${process.env.NEXT_PUBLIC_API_URL}";
       const res = await fetch(`${base}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

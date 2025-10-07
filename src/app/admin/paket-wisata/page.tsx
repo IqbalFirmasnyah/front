@@ -89,7 +89,7 @@ export default function AdminPaketWisataPage() {
 
       const queryString = new URLSearchParams(filters as Record<string, string>).toString();
       // Menggunakan fetch dari window global
-      const res = await fetch(`http://localhost:3001/paket-wisata/all?${queryString}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/all?${queryString}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ export default function AdminPaketWisataPage() {
       if (!token) throw new Error('Token tidak ditemukan.');
 
       let res: Response;
-      const url = editingPaket ? `http://localhost:3001/paket-wisata/${editingPaket.paketId}` : 'http://localhost:3001/paket-wisata/add';
+      const url = editingPaket ? `${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/${editingPaket.paketId}` : '${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/add';
       const method = editingPaket ? 'PATCH' : 'POST';
 
       res = await fetch(url, {
@@ -176,7 +176,7 @@ export default function AdminPaketWisataPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Token tidak ditemukan.');
 
-      const res = await fetch(`http://localhost:3001/paket-wisata/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -203,7 +203,7 @@ export default function AdminPaketWisataPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Token tidak ditemukan.');
 
-      const res = await fetch(`http://localhost:3001/paket-wisata/${id}/status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -68,7 +68,7 @@ export default function CreateDropoffPage() {
     };
 
     try {
-      const res = await fetch("http://localhost:3001/dropoff", {
+      const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/dropoff", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -59,7 +59,7 @@ export default function PaketWisataPage() {
           throw new Error("Token tidak ditemukan, silakan login terlebih dahulu.");
         }
 
-        const res = await fetch("http://localhost:3001/paket-wisata/all", {
+        const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/paket-wisata/all", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
