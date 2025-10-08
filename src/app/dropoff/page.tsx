@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 interface CreateDropoffDto {
   namaTujuan: string;
   alamatTujuan: string;
+  alamatJemputan: string;
   tanggalLayanan: string;
 }
 
@@ -36,6 +37,7 @@ export default function CreateDropoffPage() {
 
   const [namaTujuan, setNamaTujuan] = useState("");
   const [alamatTujuan, setAlamatTujuan] = useState("");
+  const [alamatJemputan, setAlamatJemputan] = useState("");
   const [tanggalLayanan, setTanggalLayanan] = useState<Date | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export default function CreateDropoffPage() {
     const payload: CreateDropoffDto = {
       namaTujuan,
       alamatTujuan,
+      alamatJemputan,
       tanggalLayanan: format(tanggalLayanan, "yyyy-MM-dd"),
     };
 
@@ -175,6 +178,23 @@ export default function CreateDropoffPage() {
                     rows={3}
                     className="w-full border rounded-md shadow-sm px-4 py-2 focus:ring-2 focus:ring-black focus:border-black transition"
                     placeholder="Tulis alamat lengkap tujuan"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="alamatJemputan"
+                    className="flex items-center gap-2 font-medium text-gray-700 mb-1"
+                  >
+                    <MapPin size={18} /> Alamat Jemputan
+                  </label>
+                  <input
+                    type="text"
+                    id="alamatJemputan"
+                    value={alamatJemputan}
+                    onChange={(e) => setAlamatJemputan(e.target.value)}
+                    className="w-full border rounded-md shadow-sm px-4 py-2 focus:ring-2 focus:ring-black focus:border-black transition"
+                    placeholder="Contoh: Bandara Soekarno-Hatta"
                     required
                   />
                 </div>
