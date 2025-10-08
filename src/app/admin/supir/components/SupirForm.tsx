@@ -18,7 +18,6 @@ const SupirForm: React.FC<SupirFormProps> = ({ initialData, onSubmit, onCancel, 
     nomorSim: '',
     fotoSupir: '',
     pengalamanTahun: 0,
-    ratingRata: 0,
     statusSupir: 'tersedia' as StatusSupir,
   });
 
@@ -31,7 +30,6 @@ const SupirForm: React.FC<SupirFormProps> = ({ initialData, onSubmit, onCancel, 
         nomorSim: initialData.nomorSim || '',
         fotoSupir: initialData.fotoSupir || '',
         pengalamanTahun: initialData.pengalamanTahun || 0,
-        ratingRata: initialData.ratingRata || 0,
         statusSupir: initialData.statusSupir || 'tersedia',
       });
     }
@@ -130,18 +128,6 @@ const SupirForm: React.FC<SupirFormProps> = ({ initialData, onSubmit, onCancel, 
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                 required
-              />
-            </div>
-            <div>
-              <label htmlFor="ratingRata" className="block text-sm font-medium text-gray-700">Rating Rata-rata</label>
-              <input
-                type="number"
-                id="ratingRata"
-                name="ratingRata"
-                value={formData.ratingRata}
-                onChange={handleChange}
-                step="0.1" // Untuk rating desimal
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
               />
             </div>
           </div>
