@@ -39,7 +39,7 @@ interface BookingTableProps {
 
 // Opsi status booking
 const statusOptions: BookingStatusType[] = [
-    'waiting approve admin', 'pending_payment', 'payment_CONFIRMED', 'confirmed', 'expired', 'cancelled'
+    'waiting approve admin', 'pending_payment', 'confirmed', 'expired', 'cancelled'
 ];
 
 // ********************************************
