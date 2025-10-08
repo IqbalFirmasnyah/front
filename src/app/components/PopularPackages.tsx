@@ -126,10 +126,6 @@ const PopularPackages: React.FC = () => {
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [errorPackages, setErrorPackages] = useState<string | null>(null);
 
-  // Paket (luar kota)
-  const [luarPackages, setLuarPackages] = useState<TourPackage[]>([]);
-  const [loadingLuar, setLoadingLuar] = useState(true);
-  const [errorLuar, setErrorLuar] = useState<string | null>(null);
 
   // Fasilitas
   const [fasilitasList, setFasilitasList] = useState<Fasilitas[]>([]);
@@ -192,18 +188,13 @@ const PopularPackages: React.FC = () => {
     (async () => {
       try {
         setLoadingPackages(true);
-        setLoadingLuar(true);
         setLoadingFasilitas(true);
         setLoadingSupir(true);
         setLoadingArmada(true);
 
-        const [pkg, luar, fas, sup, arm] = await Promise.all([
+        const [pkg,fas, sup, arm] = await Promise.all([
           fetchPackages(controller.signal).catch((e) => {
             setErrorPackages(String(e?.message || e));
-            return [];
-          }),
-          fetchLuarPackages(controller.signal).catch((e) => {
-            setErrorLuar(String(e?.message || e));
             return [];
           }),
           fetchFasilitas(controller.signal).catch((e) => {
@@ -221,13 +212,11 @@ const PopularPackages: React.FC = () => {
         ]);
 
         setPackages(pkg);
-        setLuarPackages(luar);
         setFasilitasList(fas);
         setSupirs(sup);
         setArmadas(arm);
       } finally {
         setLoadingPackages(false);
-        setLoadingLuar(false);
         setLoadingFasilitas(false);
         setLoadingSupir(false);
         setLoadingArmada(false);
@@ -295,48 +284,6 @@ const PopularPackages: React.FC = () => {
           </div>
         )}
 
-        {/* ========== Paket Wisata Luar Kota ========== */}
-        <div className="mt-16 md:mt-20">
-          <div className="flex items-end justify-between gap-4 mb-6">
-            <div>
-              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Eksplor Lebih Jauh</p>
-              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Paket Wisata Luar Kota</h3>
-            </div>
-            {luarPackages.length > 0 && !loadingLuar && (
-              <button
-                onClick={() => router.push("/paket-wisata?kategori=luar%20kota")}
-                className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/30 rounded px-2 py-1"
-              >
-                Lihat Semua
-              </button>
-            )}
-          </div>
-
-          {errorLuar && (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorLuar}</div>
-          )}
-
-          {loadingLuar ? (
-            <div className={grid3} aria-busy="true">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          ) : luarPackages.length === 0 ? (
-            <p className="text-gray-600">Belum ada paket wisata luar kota yang tersedia.</p>
-          ) : (
-            <div className={grid3}>
-              {luarPackages.map((pkg) => (
-                <PackageCard
-                  key={pkg.paketId}
-                  package={pkg}
-                  hideBookingButton
-                  onBookNow={(id) => router.push(`/paket-wisata/${id}`)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* ========== Fasilitas ========== */}
         <div className="mt-16 md:mt-20">
