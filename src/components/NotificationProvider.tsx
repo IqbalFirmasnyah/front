@@ -35,7 +35,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (notifications.length > 0) {
       const latest = notifications[notifications.length - 1];
       console.log('TOAST NOTIFICATION:', latest.message);
-      // di sini kamu bisa panggil toast() / UI lain
     }
   }, [notifications]);
 

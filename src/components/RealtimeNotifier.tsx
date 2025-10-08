@@ -2,63 +2,70 @@
 
 import { useEffect, useRef } from "react";
 import { getSocket } from "@/lib/socket";
-
+import { toast } from "sonner";
 
 type StatusChanged = { bookingId: number; newStatus: string; updatedAt: string };
 type Rescheduled = { bookingId: number; newDate: string; updatedAt: string };
-type Refunded   = { bookingId: number; refundId: number; status: string; updatedAt: string; amount?: number };
+type Refunded = { bookingId: number; refundId: number; status: string; updatedAt: string; amount?: number };
 
 export default function RealtimeNotifier() {
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // Buat elemen audio
+    audioRef.current = new Audio("/sounds/notif.mp3");
+    audioRef.current.volume = 0.7; // bisa disesuaikan
+
+    const playSound = () => {
+      if (audioRef.current) {
+        // Safari & Chrome butuh user interaction sebelumnya agar bisa play
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {
+          console.warn("🔇 Tidak bisa memutar suara (mungkin butuh interaksi user dulu)");
+        });
+      }
+    };
+
     const s = getSocket();
     socketRef.current = s;
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-    s.on('connect', () => {
-      console.log('[WS] connected');
+    s.on("connect", () => {
+      console.log("[WS] connected");
       if (token) {
-        s.emit('register', { token }); // kirim token raw TANPA "Bearer "
-      } else {
-        console.warn('[WS] no token in LS; will register after login');
+        s.emit("register", { token });
       }
     });
 
-    s.on('registered', (d) => console.log('[WS] registered:', d));
-    s.on('register.error', (e) => console.warn('REGISTER ERROR:', e));
-
-    s.on('booking.status.changed', (p: StatusChanged) => {
-      alert(`Status Booking #${p.bookingId}: ${p.newStatus.toUpperCase()}`);
-    });
-    s.on('booking.rescheduled', (p: Rescheduled) => {
-      alert(`Booking #${p.bookingId} dijadwal ulang ke ${new Date(p.newDate).toLocaleString('id-ID')}`);
-    });
-    s.on('booking.refunded', (p: Refunded) => {
-      alert(`Refund #${p.refundId} (${p.status.toUpperCase()}) untuk Booking #${p.bookingId}`);
+    // Event: Booking status
+    s.on("booking.status.changed", (p: StatusChanged) => {
+      toast.info(`Status Booking #${p.bookingId}`, {
+        description: `Telah berubah menjadi: ${p.newStatus.toUpperCase()}`
+      });
+      playSound();
     });
 
-    s.on('disconnect', (r) => console.warn('[WS] disconnected:', r));
-    s.on('connect_error', (e) => console.error('[WS] connect_error:', e?.message || e));
+    // Event: Reschedule
+    s.on("booking.rescheduled", (p: Rescheduled) => {
+      toast(`Booking #${p.bookingId} dijadwal ulang`, {
+        description: `Tanggal baru: ${new Date(p.newDate).toLocaleString("id-ID")}`,
+      });
+      playSound();
+    });
 
-    // re-register setelah login
-    const onTokenUpdate = () => {
-      const t = localStorage.getItem('token');
-      if (t && s.connected) s.emit('register', { token: t });
-    };
-    window.addEventListener('token-updated', onTokenUpdate);
+    // Event: Refund
+    s.on("booking.refunded", (p: Refunded) => {
+      const amount = p.amount ? `Jumlah: Rp${p.amount.toLocaleString("id-ID")}` : "";
+      toast.success(`Refund #${p.refundId} (${p.status.toUpperCase()})`, {
+        description: `Untuk Booking #${p.bookingId}. ${amount}`,
+      });
+      playSound();
+    });
 
     return () => {
-      window.removeEventListener('token-updated', onTokenUpdate);
-      s.off('registered');
-      s.off('register.error');
-      s.off('connect');
-      s.off('disconnect');
-      s.off('connect_error');
-      s.off('booking.status.changed');
-      s.off('booking.rescheduled');
-      s.off('booking.refunded');
+      s.disconnect();
     };
   }, []);
 
