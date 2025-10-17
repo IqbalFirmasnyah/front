@@ -16,9 +16,7 @@ import {
 } from "lucide-react";
 import type { Meta, UserRow } from "../page";
 
-/* =========================
-   Helpers
-   ========================= */
+
 function formatDate(d: string) {
   const date = new Date(d);
   if (isNaN(date.getTime())) return "-";
@@ -53,9 +51,6 @@ const StatusBadge: React.FC<{ aktif: boolean }> = ({ aktif }) => {
   );
 };
 
-/* =========================
-   Props
-   ========================= */
 interface UserTableProps {
   users: UserRow[];
   meta: Meta;
@@ -68,9 +63,7 @@ interface UserTableProps {
   currentFilters: { status?: "aktif" | "non_aktif"; search?: string };
 }
 
-/* =========================
-   Component
-   ========================= */
+
 const UserTable: React.FC<UserTableProps> = ({
   users,
   meta,
@@ -247,7 +240,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     {formatDate(u.createdAt)}
                   </td>
 
-                  {/* 👉 Kolom Aksi (hapus saja) */}
+                  
                   <td className="border-t border-zinc-200 px-3 py-3">
                     <div className="flex items-center justify-center">
                       <button

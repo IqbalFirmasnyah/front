@@ -201,10 +201,6 @@ export default function AdminUsersPage() {
     setFilters(f);
   };
 
-  const handleEdit = (user: UserRow) => {
-    router.push(`/admin/users/${user.userId}/edit`);
-  };
-
   const handleDelete = async (id: number) => {
     if (!confirm("Yakin hapus user ini?")) return;
     try {
@@ -364,7 +360,6 @@ export default function AdminUsersPage() {
           <UserTable
             users={users}
             meta={meta}
-            onEdit={handleEdit}
             onDelete={handleDelete}
             onToggleActive={handleToggleActive}
             onPageChange={handlePageChange}
