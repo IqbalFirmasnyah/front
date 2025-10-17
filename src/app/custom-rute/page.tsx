@@ -1,3 +1,4 @@
+// app/fasilitas/custom-rute/page.tsx
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
@@ -22,12 +23,13 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Card, CardHeader, CardTitle } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "../components/ui/popover";
-import { Calendar } from "../components/ui/calendar";
-import { Label } from "../components/ui/label";
-import Header from "../components/Header";
+import { Card, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/app/components/ui/popover";
+import { Calendar } from "@/app/components/ui/calendar";
+import { Label } from "@/app/components/ui/label";
+import Header from "@/app/components/Header";
+import customeImg from "@/app/assets/Custome.jpeg";
 
 /* ---------- Types ---------- */
 interface CustomRouteSegment {
@@ -43,9 +45,7 @@ interface CreateCustomRuteDto {
   catatanKhusus?: string;
 }
 
-import customeImg from "@/app/assets/Custome.jpeg";
-
-/* ---------- Page wrapper: Wajib ada Suspense ---------- */
+/* ---------- Page wrapper ---------- */
 export default function Page() {
   return (
     <Suspense fallback={<div className="min-h-screen" />}>
@@ -54,7 +54,6 @@ export default function Page() {
   );
 }
 
-/* ---------- Client component yang pakai useSearchParams ---------- */
 function CreateCustomRutePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -137,7 +136,7 @@ function CreateCustomRutePageClient() {
       fasilitasId: Number(fasilitasId),
       tujuanList: customRouteSegments,
       tanggalMulai: formattedDate,
-      tanggalSelesai: formattedDate,
+      tanggalSelesai: formattedDate, // eksplisit sama
       catatanKhusus: catatanKhusus || undefined,
     };
 
@@ -168,7 +167,6 @@ function CreateCustomRutePageClient() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan saat membuat Rute Kustom.";
       setError(message);
-      // console.error(message);
     } finally {
       setLoading(false);
     }
@@ -203,8 +201,7 @@ function CreateCustomRutePageClient() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
             >
-              Rencanakan perjalanan impian Anda. Tentukan sendiri destinasi dan
-              rute yang Anda inginkan.
+              Rencanakan perjalanan impian Anda. Tentukan sendiri destinasi dan rute yang Anda inginkan.
             </motion.p>
           </div>
         </section>
@@ -214,9 +211,7 @@ function CreateCustomRutePageClient() {
           <div className="container mx-auto grid lg:grid-cols-2 gap-10 px-6">
             {/* Left: Form */}
             <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-              <h2 className="text-2xl md:text-3xl font-bold mb-6">
-                Formulir Rute Kustom
-              </h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-6">Formulir Rute Kustom</h2>
               <form className="space-y-6" onSubmit={handleSubmit}>
                 {/* Calendar Input (Tanggal Layanan) */}
                 <div className="space-y-2">
@@ -250,7 +245,7 @@ function CreateCustomRutePageClient() {
                   </Popover>
                 </div>
 
-                {/* Destinasi/Segmen Rute Kustom */}
+                {/* Destinasi Rute Kustom */}
                 <section className="space-y-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
                   <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                     <Route size={20} className="text-black" /> Detail Destinasi
@@ -369,10 +364,10 @@ function CreateCustomRutePageClient() {
               </Card>
 
               <Card className="overflow-hidden rounded-xl hover:shadow-xl transition cursor-default">
-              <div className="relative w-full h-56">
+                <div className="relative w-full h-56">
                   <Image
-                    src={customeImg}     // ⬅️ pakai asset lokal
-                    alt="Layanan Dropoff"
+                    src={customeImg}
+                    alt="Layanan Rute Kustom"
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
@@ -384,11 +379,9 @@ function CreateCustomRutePageClient() {
                     Jelajahi Sesuai Aturan Anda
                   </h3>
                   <p className="text-gray-600 text-sm md:text-base">
-                    Dengan layanan rute kustom, Anda adalah perencana perjalanan
-                    utama. Kami siap mewujudkan setiap detailnya.
+                    Dengan layanan rute kustom, Anda adalah perencana perjalanan utama. Kami siap mewujudkan setiap detailnya.
                   </p>
                 </div>
-               
               </Card>
             </div>
           </div>
@@ -420,32 +413,22 @@ function CreateCustomRutePageClient() {
                   { text: "Hotel & Akomodasi", icon: <Home size={16} /> },
                   { text: "Transportasi", icon: <MapPin size={16} /> },
                 ].map((layanan) => (
-                  <motion.li
-                    key={layanan.text}
-                    className="flex items-center gap-2 cursor-pointer text-gray-600 hover:text-black transition"
-                    whileHover={{ x: 5 }}
-                  >
+                  <li key={layanan.text} className="flex items-center gap-2 text-gray-600">
                     {layanan.icon} {layanan.text}
-                  </motion.li>
+                  </li>
                 ))}
               </ul>
             </Card>
 
             <Card className="bg-transparent border-none shadow-none text-gray-800">
               <CardHeader>
-                <CardTitle className="font-semibold">
-                  Destinasi Populer
-                </CardTitle>
+                <CardTitle className="font-semibold">Destinasi Populer</CardTitle>
               </CardHeader>
               <ul className="space-y-2">
                 {["Bali", "Yogyakarta", "Raja Ampat", "Lombok"].map((dest) => (
-                  <motion.li
-                    key={dest}
-                    className="flex items-center gap-2 cursor-pointer text-gray-600 hover:text-black transition"
-                    whileHover={{ x: 5 }}
-                  >
+                  <li key={dest} className="flex items-center gap-2 text-gray-600">
                     <MapPin size={16} /> {dest}
-                  </motion.li>
+                  </li>
                 ))}
               </ul>
             </Card>

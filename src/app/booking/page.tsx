@@ -1,3 +1,4 @@
+// app/booking/page.tsx
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -72,16 +73,13 @@ const getPriceMode = (
     paketLuarKotaId: string | null;
     fasilitasId: string | null;
   },
-  itemDetail: ItemDetail | null
+  _itemDetail: ItemDetail | null
 ): PriceMode => {
-  if (params.dropoffId) return PriceMode.PER_PESERTA;            // dropoff = flat
-  if (params.customRuteId) return PriceMode.PER_PESERTA;  // custom = per peserta
-  if (params.paketId) return PriceMode.PER_PESERTA;
-  if (params.paketLuarKotaId) return PriceMode.PER_PESERTA;
+  // Untuk contoh ini semua PER_PESERTA
   return PriceMode.PER_PESERTA;
 };
 
-/** ================= Page wrapper: Suspense boundary ================= */
+/** ================= Page wrapper ================= */
 export default function Page() {
   return (
     <Suspense fallback={<div className="min-h-screen" />}>
@@ -90,7 +88,7 @@ export default function Page() {
   );
 }
 
-/** ================= Client content (menggunakan useSearchParams) ================= */
+/** ================= Client content ================= */
 function BookingPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -176,7 +174,6 @@ function BookingPageClient() {
         const isCombinedFetch = !!dropoffId || !!customRuteId;
 
         if (isCombinedFetch) {
-          // response gabungan (options)
           const d = (data as any).data ?? {};
           detail = d.dropoffDetail || d.customRuteDetail || {};
           setAvailableArmada(Array.isArray(d.armadas) ? d.armadas : []);
@@ -184,7 +181,6 @@ function BookingPageClient() {
           tglMulai = (detail as any).tanggalMulai;
           tglSelesai = (detail as any).tanggalSelesai;
         } else {
-          // response langsung entity
           const d = (data as any).data ?? data;
           detail = d;
           tglMulai = tanggalMulaiParam || detail.tanggalMulaiWisata || detail.startDate;
@@ -192,8 +188,22 @@ function BookingPageClient() {
         }
 
         setItemDetail(detail);
-        if (tglMulai) setTanggalMulai(formatDateForInput(tglMulai));
-        if (tglSelesai) setTanggalSelesai(formatDateForInput(tglSelesai));
+
+        // >>> Normalisasi: single-day (mulai == selesai)
+        if (tglMulai) {
+          const start = formatDateForInput(tglMulai);
+          setTanggalMulai(start);
+          setTanggalSelesai(start);
+        } else if (tglSelesai) {
+          const end = formatDateForInput(tglSelesai);
+          setTanggalMulai(end);
+          setTanggalSelesai(end);
+        } else {
+          // default ke hari ini jika kosong sama sekali
+          const today = new Date().toISOString().split("T")[0];
+          setTanggalMulai(today);
+          setTanggalSelesai(today);
+        }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Gagal memuat detail.";
         setError(message);
@@ -206,7 +216,7 @@ function BookingPageClient() {
     fetchData();
   }, [endpoint, dropoffId, customRuteId, tanggalMulaiParam, tanggalSelesaiParam, router]);
 
-  // Fetch ketersediaan (paket/fasilitas biasa)
+  // Fetch ketersediaan (paket/fasilitas biasa) — untuk custom/dropoff kita anggap read-only tanggal, jadi biarkan seperti logika awal
   useEffect(() => {
     const isCombinedFetch = !!dropoffId || !!customRuteId;
     if (isCombinedFetch || !tanggalMulai || !tanggalSelesai) return;
@@ -222,14 +232,11 @@ function BookingPageClient() {
         }
 
         const startDate = new Date(tanggalMulai);
-        const endDate = new Date(tanggalSelesai);
-        const adjustedEnd =
-          startDate.getTime() >= endDate.getTime()
-            ? new Date(endDate.getTime() + 24 * 60 * 60 * 1000)
-            : endDate;
+        // >>> single-day: paksa end = start
+        const endDate = new Date(startDate);
 
         const startISO = startDate.toISOString();
-        const endISO = adjustedEnd.toISOString();
+        const endISO = endDate.toISOString();
 
         const [armadaRes, supirRes] = await Promise.all([
           fetch(
@@ -265,11 +272,7 @@ function BookingPageClient() {
 
   // Harga & total
   const priceMode = useMemo(
-    () =>
-      getPriceMode(
-        { dropoffId, customRuteId, paketId, paketLuarKotaId, fasilitasId },
-        itemDetail
-      ),
+    () => getPriceMode({ dropoffId, customRuteId, paketId, paketLuarKotaId, fasilitasId }, itemDetail),
     [dropoffId, customRuteId, paketId, paketLuarKotaId, fasilitasId, itemDetail]
   );
 
@@ -282,7 +285,6 @@ function BookingPageClient() {
 
   const itemPrice = (itemDetail?.hargaEstimasi ?? itemDetail?.harga ?? 0) as number | string;
   const basePrice = useMemo(() => parsePriceToNumber(itemPrice), [itemPrice]);
-
   const totalPrice = useMemo(() => {
     const qty = Number(jumlahPeserta) || 0;
     return priceMode === PriceMode.PER_PESERTA ? basePrice * qty : basePrice;
@@ -310,7 +312,8 @@ function BookingPageClient() {
     setSubmitting(true);
 
     const startDate = new Date(tanggalMulai);
-    const endDate = new Date(tanggalSelesai);
+    // >>> single-day: paksa end = start
+    const endDate = new Date(startDate);
 
     const body = {
       customRuteId: customRuteId ? Number(customRuteId) : undefined,
@@ -450,9 +453,7 @@ function BookingPageClient() {
                       <span className="font-semibold">
                         Total {priceMode === PriceMode.FLAT ? "Estimasi (Flat)" : "Estimasi (Per Peserta)"}
                       </span>
-                      <span className="font-extrabold text-primary">
-                        {formatPrice(totalPrice)}
-                      </span>
+                      <span className="font-extrabold text-primary">{formatPrice(totalPrice)}</span>
                     </div>
                   </div>
 
