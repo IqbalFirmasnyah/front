@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { ChartTooltip } from "./ChartTooltip";
-import { PALETTE, kFormatter } from "../colors";
+import { PALETTE, kFormatter } from "src/lib/colors.ts";
 
 export function RoundedBar({
   data, xKey = "month", yKey = "value", name = "Refunds",
