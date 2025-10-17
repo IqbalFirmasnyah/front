@@ -221,41 +221,6 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleToggleActive = async (id: number, next: boolean) => {
-    try {
-      // coba endpoint khusus
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/${id}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ statusAktif: next }),
-        }
-      );
-
-      if (!res.ok) {
-        // fallback PUT umum
-        const res2 = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/users/${id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ statusAktif: next }),
-          }
-        );
-        if (!res2.ok) throw new Error("Gagal mengubah status pengguna");
-      }
-      await fetchUsers(meta.page);
-    } catch (e: any) {
-      alert(e?.message || "Gagal mengubah status pengguna");
-    }
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -361,7 +326,6 @@ export default function AdminUsersPage() {
             users={users}
             meta={meta}
             onDelete={handleDelete}
-            onToggleActive={handleToggleActive}
             onPageChange={handlePageChange}
             onFilterChange={handleFilterChange}
             currentFilters={filters}
