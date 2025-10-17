@@ -1,5 +1,5 @@
 
-import { kFormatter } from "src/lib/colors.ts"
+import { kFormatter } from "../utils/colors"
 
 export function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;

@@ -2,7 +2,7 @@
 "use client";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartTooltip } from "./ChartTooltip";
-import { PALETTE } from "src/lib/colors.ts";
+import { PALETTE } from "../utils/colors";
 
 
 const RING = [

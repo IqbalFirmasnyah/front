@@ -4,7 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { ChartTooltip } from "./ChartTooltip";
-import { PALETTE, ZINC, kFormatter } from "src/lib/colors.ts";
+import { PALETTE, ZINC, kFormatter } from "../utils/colors";
 
 export function TrendArea({
   data,
