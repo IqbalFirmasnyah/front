@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   MapPin,
   FileText,
@@ -41,6 +42,8 @@ interface CreateCustomRuteDto {
   tanggalSelesai: string;
   catatanKhusus?: string;
 }
+
+import customeImg from "@/app/assets/Custome.jpeg";
 
 /* ---------- Page wrapper: Wajib ada Suspense ---------- */
 export default function Page() {
@@ -366,11 +369,16 @@ function CreateCustomRutePageClient() {
               </Card>
 
               <Card className="overflow-hidden rounded-xl hover:shadow-xl transition cursor-default">
-                <img
-                  src="https://images.unsplash.com/photo-1549646401-d7037e9659a8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                  alt="Custom route service"
-                  className="w-full h-56 object-cover"
-                />
+              <div className="relative w-full h-56">
+                  <Image
+                    src={customeImg}     // ⬅️ pakai asset lokal
+                    alt="Layanan Dropoff"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
+                    priority={false}
+                  />
+                </div>
                 <div className="p-5">
                   <h3 className="text-lg md:text-xl font-semibold mb-1">
                     Jelajahi Sesuai Aturan Anda
@@ -380,6 +388,7 @@ function CreateCustomRutePageClient() {
                     utama. Kami siap mewujudkan setiap detailnya.
                   </p>
                 </div>
+               
               </Card>
             </div>
           </div>

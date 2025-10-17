@@ -4,88 +4,64 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  Cell,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 
-// =====================
-// Types
-// =====================
+/* =====================
+   Types
+===================== */
 interface DecodedToken {
   sub: number;
   username: string;
-  role: string; // 'user' | 'admin' | 'superadmin'
+  role: string;
   namaLengkap: string;
   adminRole?: string;
   exp: number;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   email: string;
+  // kalau payload kamu punya 'roles', biarkan TS tidak mengeluh:
+  roles?: string[];
 }
 
-// Adjust these according to your backend DTOs
 interface Booking {
   bookingId?: number | string;
   id?: number | string;
   status?: string;
   createdAt?: string;
+  created_at?: string;
   tanggal_layanan?: string;
-  // ...other fields
 }
 
 interface Refund {
   id?: number | string;
-  status?: string; // e.g., 'pending' | 'approved' | 'rejected'
+  status?: string;
   createdAt?: string;
+  created_at?: string;
 }
 
 interface UserRow {
   id_user?: number | string;
   created_at?: string;
-  role?: string; // if available
+  createdAt?: string;
+  role?: string;
 }
 
-// =====================
-// Helpers
-// =====================
-
-
+/* =====================
+   Helpers tanggal & utils
+===================== */
 function toMonthKey(dateStr?: string) {
   if (!dateStr) return "Unknown";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "Unknown";
-  // e.g., "2025-01"
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function monthLabel(key: string) {
   if (key === "Unknown") return key;
   const [y, m] = key.split("-");
-  const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mei",
-    "Jun",
-    "Jul",
-    "Agu",
-    "Sep",
-    "Okt",
-    "Nov",
-    "Des",
-  ];
+  const monthNames = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
   const idx = Math.max(0, Math.min(11, Number(m) - 1));
   return `${monthNames[idx]} ${y}`;
 }
@@ -106,7 +82,7 @@ function sumByMonth<T>(rows: T[], getDate: (r: T) => string | undefined) {
     const key = toMonthKey(getDate(r));
     map.set(key, (map.get(key) ?? 0) + 1);
   }
-  return map; // Map<YYYY-MM, count>
+  return map;
 }
 
 function ensureMonths(map: Map<string, number>, months: string[]) {
@@ -117,7 +93,6 @@ function ensureMonths(map: Map<string, number>, months: string[]) {
   return result;
 }
 
-// Pie helpers for roles/status buckets
 function bucketCounts<T>(rows: T[], getKey: (r: T) => string | undefined) {
   const map = new Map<string, number>();
   for (const r of rows) {
@@ -127,36 +102,68 @@ function bucketCounts<T>(rows: T[], getKey: (r: T) => string | undefined) {
   return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
 }
 
-const PIE_COLORS = [
-  "#8884d8",
-  "#82ca9d",
-  "#ffc658",
-  "#8dd1e1",
-  "#a4de6c",
-  "#d0ed57",
-  "#ff8042",
-  "#d88884",
-  "#84d8c6",
+function extractArray(obj: any) {
+  if (Array.isArray(obj)) return obj;
+  if (!obj || typeof obj !== "object") return [];
+  return obj.data ?? obj.items ?? obj.result ?? obj.rows ?? [];
+}
+
+function kFormatter(n?: number) {
+  if (n === undefined || n === null) return "0";
+  const v = Math.abs(n);
+  if (v < 1000) return `${n}`;
+  if (v < 1_000_000) return `${(n / 1000).toFixed(1)}k`;
+  if (v < 1_000_000_000) return `${(n / 1_000_000).toFixed(1)}m`;
+  return `${(n / 1_000_000_000).toFixed(1)}b`;
+}
+
+/* =====================
+   Palette & tooltip
+===================== */
+const PALETTE = {
+  primary: "#7C3AED",   // violet-600
+  success: "#10B981",   // emerald-500
+  info: "#06B6D4",      // cyan-500
+  warning: "#F59E0B",
+  danger: "#EF4444",
+  neutral: "#64748B",
+};
+const RING = [
+  PALETTE.success, PALETTE.warning, PALETTE.danger,
+  PALETTE.primary, PALETTE.info, PALETTE.neutral,
 ];
 
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border bg-white/80 backdrop-blur px-3 py-2 text-sm shadow-md">
+      {label && <div className="mb-1 font-medium">{label}</div>}
+      {payload.map((p: any) => (
+        <div key={p.dataKey} className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} />
+          <span className="text-gray-600">{p.name ?? p.dataKey}</span>
+          <span className="ml-auto font-semibold text-gray-900">{kFormatter(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* =====================
+   Component
+===================== */
 export default function AdminDashboardPage() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [dashboardData, setDashboardData] = useState<
-    { message: string; user: DecodedToken } | null
-  >(null);
+  const [dashboardData, setDashboardData] = useState<{ message: string; user: DecodedToken } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // raw datasets
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [refunds, setRefunds] = useState<Refund[]>([]);
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [refunds, setRefunds]   = useState<Refund[]>([]);
+  const [users, setUsers]       = useState<UserRow[]>([]);
 
-  // =====================
-  // Fetch dashboard + datasets
-  // =====================
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
@@ -169,7 +176,7 @@ export default function AdminDashboardPage() {
           return;
         }
 
-        // decode & expiry check
+        // validasi token
         try {
           const decoded = jwtDecode<DecodedToken>(token);
           if (decoded.exp * 1000 < Date.now()) {
@@ -186,10 +193,11 @@ export default function AdminDashboardPage() {
           return;
         }
 
-        // 1) Admin dashboard identity
-        const dashRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/admin/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const base = process.env.NEXT_PUBLIC_API_URL!;
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // identitas admin (sekalian verifikasi akses)
+        const dashRes = await fetch(`${base}/auth/admin/dashboard`, { headers });
         if (!dashRes.ok) {
           if (dashRes.status === 403) {
             setError("Akses Ditolak: Anda tidak memiliki hak akses yang memadai.");
@@ -206,46 +214,38 @@ export default function AdminDashboardPage() {
         const dashJson = await dashRes.json();
         setDashboardData(dashJson);
 
-        // 2) Datasets (adjust paths IF your controllers use different prefixes)
+        // ==== Ambil data utama ====
         const [bookingsRes, refundsRes, usersRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/refunds`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-            headers: { Authorization: `Bearer ${token}` }, // if user list is public to admin only
-          }),
+          fetch(`${base}/booking`, { headers }),  // NOTE: singular sesuai @Controller('booking')
+          fetch(`${base}/refunds`, { headers }),  // sesuaikan bila controllernya beda
+          fetch(`${base}/users`,  { headers }),
         ]);
 
-        // Bookings
+        // bookings
         if (bookingsRes.ok) {
           const bj = await bookingsRes.json();
-          // shape A: { statusCode, message, data: [...] }
-          // shape B: [ ... ]
-          const arr: Booking[] = Array.isArray(bj) ? bj : bj?.data ?? [];
-          setBookings(arr);
+          setBookings(extractArray(bj));
         } else {
-          console.warn("/bookings failed", bookingsRes.status);
+          console.warn("/booking failed", bookingsRes.status);
+          setBookings([]);
         }
 
-        // Refunds
+        // refunds (opsional, kalau belum ada boleh dikosongkan)
         if (refundsRes.ok) {
           const rj = await refundsRes.json();
-          const arr: Refund[] = Array.isArray(rj) ? rj : rj?.data ?? [];
-          setRefunds(arr);
+          setRefunds(extractArray(rj));
         } else {
           console.warn("/refunds failed", refundsRes.status);
+          setRefunds([]);
         }
 
-        // Users
+        // users
         if (usersRes.ok) {
           const uj = await usersRes.json();
-          const arr: UserRow[] = Array.isArray(uj) ? uj : uj?.data ?? uj ?? [];
-          setUsers(arr);
+          setUsers(extractArray(uj));
         } else {
           console.warn("/users failed", usersRes.status);
+          setUsers([]);
         }
       } catch (err: any) {
         console.error("Fetch error:", err?.message || err);
@@ -258,31 +258,30 @@ export default function AdminDashboardPage() {
     fetchAll();
   }, [router, pathname]);
 
-  // =====================
-  // Derived chart data
-  // =====================
-  const monthKeys = useMemo(() => lastNMonthKeys(6), []); // last 6 months
+  /* =====================
+     Derived series & buckets
+  ===================== */
+  const monthKeys = useMemo(() => lastNMonthKeys(6), []);
 
   const bookingSeries = useMemo(() => {
-    const map = sumByMonth(bookings, (b) => b.createdAt || b.tanggal_layanan);
-    return ensureMonths(map, monthKeys).map((x) => ({ month: x.label, bookings: x.value }));
+    const map = sumByMonth(bookings, (b: any) =>
+      b.createdAt || b.created_at || b.tanggal_layanan || b.created
+    );
+    return ensureMonths(map, monthKeys).map(x => ({ month: x.label, bookings: x.value }));
   }, [bookings, monthKeys]);
 
   const refundSeries = useMemo(() => {
-    const map = sumByMonth(refunds, (r) => r.createdAt);
-    return ensureMonths(map, monthKeys).map((x) => ({ month: x.label, refunds: x.value }));
+    const map = sumByMonth(refunds, (r: any) => r.createdAt || r.created_at || (r as any)?.created);
+    return ensureMonths(map, monthKeys).map(x => ({ month: x.label, refunds: x.value }));
   }, [refunds, monthKeys]);
 
   const userSeries = useMemo(() => {
-    const map = sumByMonth(users, (u) => u.created_at);
-    return ensureMonths(map, monthKeys).map((x) => ({ month: x.label, users: x.value }));
+    const map = sumByMonth(users, (u: any) => u.created_at || u.createdAt || u.created || u.joinedAt);
+    return ensureMonths(map, monthKeys).map(x => ({ month: x.label, users: x.value }));
   }, [users, monthKeys]);
 
-  const refundBuckets = useMemo(() => bucketCounts(refunds, (r) => r.status), [refunds]);
-  const userRoleBuckets = useMemo(
-    () => bucketCounts(users, (u) => (u as any)?.role),
-    [users]
-  );
+  const refundBuckets   = useMemo(() => bucketCounts(refunds, (r) => (r as any)?.status), [refunds]);
+  const userRoleBuckets = useMemo(() => bucketCounts(users,  (u) => (u as any)?.role),   [users]);
 
   const totals = useMemo(
     () => ({ bookings: bookings.length, refunds: refunds.length, users: users.length }),
@@ -392,15 +391,15 @@ export default function AdminDashboardPage() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-medium text-gray-500">Total Booking</h3>
             <p className="text-3xl font-bold text-gray-800">{totals.bookings}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-medium text-gray-500">Total Refund</h3>
             <p className="text-3xl font-bold text-gray-800">{totals.refunds}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-medium text-gray-500">Total User</h3>
             <p className="text-3xl font-bold text-gray-800">{totals.users}</p>
           </div>
@@ -408,128 +407,162 @@ export default function AdminDashboardPage() {
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Bookings over time */}
-          <div className="bg-white p-6 rounded-lg shadow-md col-span-1 lg:col-span-2">
+          {/* Booking per Bulan */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 col-span-1 lg:col-span-2">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Booking per Bulan</h2>
             <div className="w-full h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={bookingSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <AreaChart data={bookingSeries.map(d => ({ month: d.month, value: d.bookings }))} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8884d8" stopOpacity={0.6} />
-                      <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                    <linearGradient id="gradBookings" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={PALETTE.primary} stopOpacity={0.45} />
+                      <stop offset="95%" stopColor={PALETTE.primary} stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Area type="monotone" dataKey="bookings" stroke="#8884d8" fill="url(#colorBookings)" />
+                  <CartesianGrid strokeDasharray="4 6" strokeOpacity={0.3} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tickFormatter={kFormatter} tick={{ fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    name="Bookings"
+                    stroke={PALETTE.primary}
+                    strokeWidth={2.5}
+                    fill="url(#gradBookings)"
+                    animationDuration={700}
+                    dot={{ r: 3, strokeWidth: 1, stroke: "white" }}
+                    activeDot={{ r: 5 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Refunds by month */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          {/* Refund per Bulan */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Refund per Bulan</h2>
             <div className="w-full h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={refundSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
+                <BarChart data={refundSeries.map(d => ({ month: d.month, value: d.refunds }))} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="4 6" strokeOpacity={0.3} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tickFormatter={kFormatter} tick={{ fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
                   <Legend />
-                  <Bar dataKey="refunds" fill="#82ca9d" />
+                  <Bar dataKey="value" name="Refunds" fill={PALETTE.info} radius={[10, 10, 0, 0]} maxBarSize={42} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Users by month */}
-          <div className="bg-white p-6 rounded-lg shadow-md col-span-1 lg:col-span-2">
+          {/* User Baru per Bulan */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 col-span-1 lg:col-span-2">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">User Baru per Bulan</h2>
             <div className="w-full h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={userSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <AreaChart data={userSeries.map(d => ({ month: d.month, value: d.users }))} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.6} />
-                      <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
+                    <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={PALETTE.success} stopOpacity={0.45} />
+                      <stop offset="95%" stopColor={PALETTE.success} stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Area type="monotone" dataKey="users" stroke="#82ca9d" fill="url(#colorUsers)" />
+                  <CartesianGrid strokeDasharray="4 6" strokeOpacity={0.3} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tickFormatter={kFormatter} tick={{ fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    name="Users"
+                    stroke={PALETTE.success}
+                    strokeWidth={2.5}
+                    fill="url(#gradUsers)"
+                    animationDuration={700}
+                    dot={{ r: 3, strokeWidth: 1, stroke: "white" }}
+                    activeDot={{ r: 5 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Buckets: refund status & user roles */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          {/* Komposisi Status Refund */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Komposisi Status Refund</h2>
             <div className="w-full h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Tooltip />
+                  <Tooltip content={<ChartTooltip />} />
                   <Legend />
-                  <Pie data={refundBuckets} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}>
+                  <Pie
+                    data={refundBuckets}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={110}
+                    paddingAngle={2}
+                    strokeWidth={2}
+                    animationDuration={700}
+                  >
                     {refundBuckets.map((_, idx) => (
-                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      <Cell key={idx} fill={RING[idx % RING.length]} />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Refund</div>
+                  <div className="text-2xl font-semibold text-gray-900">
+                    {refundBuckets.reduce((a, b) => a + (b.value ?? 0), 0)}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          {/* Komposisi Role User */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Komposisi Role User</h2>
             <div className="w-full h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Tooltip />
+                  <Tooltip content={<ChartTooltip />} />
                   <Legend />
-                  <Pie data={userRoleBuckets} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}>
+                  <Pie
+                    data={userRoleBuckets}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={110}
+                    paddingAngle={2}
+                    strokeWidth={2}
+                    animationDuration={700}
+                  >
                     {userRoleBuckets.map((_, idx) => (
-                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      <Cell key={idx} fill={RING[idx % RING.length]} />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Users</div>
+                  <div className="text-2xl font-semibold text-gray-900">
+                    {userRoleBuckets.reduce((a, b) => a + (b.value ?? 0), 0)}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Quick actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Aksi Cepat</h2>
-            <ul className="space-y-2">
-              <li>
-                <a href="/admin/users" className="text-blue-600 hover:underline">
-                  Kelola Pengguna
-                </a>
-              </li>
-              <li>
-                <a href="/admin/payments" className="text-blue-600 hover:underline">
-                  Verifikasi Pembayaran
-                </a>
-              </li>
-              <li>
-                <a href="/admin/reports" className="text-blue-600 hover:underline">
-                  Lihat Laporan
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
       </main>
     </div>
   );

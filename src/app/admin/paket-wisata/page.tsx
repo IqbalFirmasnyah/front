@@ -274,7 +274,7 @@ export default function AdminPaketWisataPage() {
         <p className="text-xl font-semibold mb-4">Akses Ditolak!</p>
         <p className="text-lg text-center">{authError}</p>
         <button
-          onClick={() => router.push('/login')}
+          onClick={() => router.push('/')}
           className="mt-6 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300"
         >
           Kembali ke Login

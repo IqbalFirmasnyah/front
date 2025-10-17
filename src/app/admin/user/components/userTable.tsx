@@ -5,22 +5,20 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Search,
   Filter,
-  UploadCloud,
   Hash,
   AtSign,
   Phone,
   MapPin,
-  Calendar,
-  Edit,
+  Calendar as CalendarIcon,
   Trash2,
-  ToggleLeft,
-  ToggleRight,
   CheckCircle2,
   CircleSlash,
 } from "lucide-react";
 import type { Meta, UserRow } from "../page";
-import { useRouter } from "next/navigation";
 
+/* =========================
+   Helpers
+   ========================= */
 function formatDate(d: string) {
   const date = new Date(d);
   if (isNaN(date.getTime())) return "-";
@@ -30,6 +28,7 @@ function formatDate(d: string) {
     day: "2-digit",
   });
 }
+
 function maskEmail(email: string) {
   const [name, domain] = email.split("@");
   if (!domain) return email;
@@ -40,12 +39,27 @@ function maskEmail(email: string) {
   return `${masked}@${domain}`;
 }
 
+const StatusBadge: React.FC<{ aktif: boolean }> = ({ aktif }) => {
+  return aktif ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">
+      <CheckCircle2 className="h-3.5 w-3.5" />
+      Aktif
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 ring-1 ring-inset ring-zinc-200">
+      <CircleSlash className="h-3.5 w-3.5" />
+      Non Aktif
+    </span>
+  );
+};
+
+/* =========================
+   Props
+   ========================= */
 interface UserTableProps {
   users: UserRow[];
   meta: Meta;
-  onEdit: (user: UserRow) => void;
   onDelete: (id: number) => void;
-  onToggleActive: (id: number, next: boolean) => void;
   onPageChange: (page: number) => void;
   onFilterChange: (filters: {
     status?: "aktif" | "non_aktif";
@@ -54,59 +68,17 @@ interface UserTableProps {
   currentFilters: { status?: "aktif" | "non_aktif"; search?: string };
 }
 
-const IconButton: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    tone?: "blue" | "red" | "indigo" | "zinc";
-  }
-> = ({ tone = "blue", className = "", children, ...props }) => {
-  const toneMap = {
-    blue:
-      "text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus-visible:outline-blue-600",
-    red:
-      "text-red-600 hover:text-red-700 hover:bg-red-50 focus-visible:outline-red-600",
-    indigo:
-      "text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 focus-visible:outline-indigo-600",
-    zinc:
-      "text-zinc-600 hover:text-zinc-700 hover:bg-zinc-50 focus-visible:outline-zinc-600",
-  } as const;
-  return (
-    <button
-      {...props}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${toneMap[tone]} ${className}`}
-    >
-      {children}
-    </button>
-  );
-};
-
-const renderStatusBadge = (aktif: boolean) => {
-  if (aktif) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-200">
-        <CheckCircle2 className="h-3.5 w-3.5" />
-        Aktif
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 ring-1 ring-inset ring-zinc-200">
-      <CircleSlash className="h-3.5 w-3.5" />
-      Non Aktif
-    </span>
-  );
-};
-
+/* =========================
+   Component
+   ========================= */
 const UserTable: React.FC<UserTableProps> = ({
   users,
   meta,
-  onEdit,
   onDelete,
-  onToggleActive,
   onPageChange,
   onFilterChange,
   currentFilters,
 }) => {
-  const router = useRouter();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const [searchText, setSearchText] = useState(currentFilters.search || "");
 
@@ -124,12 +96,11 @@ const UserTable: React.FC<UserTableProps> = ({
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">Daftar Pengguna</h2>
-          <p className="text-xs text-zinc-500">
-            Kelola akun, status aktif, dan informasi kontak.
-          </p>
+          <p className="text-xs text-zinc-500">Kelola akun, status aktif, dan informasi kontak.</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {/* Search */}
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
@@ -142,6 +113,7 @@ const UserTable: React.FC<UserTableProps> = ({
             />
           </div>
 
+          {/* Filter Status */}
           <div className="relative">
             <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <select
@@ -174,7 +146,7 @@ const UserTable: React.FC<UserTableProps> = ({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full table-fixed border-separate border-spacing-0">
-            {/* Kontrol lebar kolom agar rapi di desktop dan tidak melebar */}
+            {/* Kontrol lebar kolom agar rapi */}
             <colgroup>
               <col className="w-14" /> {/* ID */}
               <col className="w-44 sm:w-48" /> {/* Nama */}
@@ -184,7 +156,7 @@ const UserTable: React.FC<UserTableProps> = ({
               <col className="hidden lg:table-column" /> {/* Alamat */}
               <col className="w-28" /> {/* Status */}
               <col className="hidden md:table-column md:w-36" /> {/* Bergabung */}
-              <col className="w-36 sm:w-40" /> {/* Aksi */}
+              <col className="w-20" /> {/* Aksi */}
             </colgroup>
 
             <thead>
@@ -224,11 +196,11 @@ const UserTable: React.FC<UserTableProps> = ({
                 </th>
                 <th className="sticky top-0 z-10 hidden bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur md:table-cell">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
+                    <CalendarIcon className="h-4 w-4" />
                     Bergabung
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur">
+                <th className="sticky top-0 z-10 bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-200 backdrop-blur text-center">
                   Aksi
                 </th>
               </tr>
@@ -268,56 +240,28 @@ const UserTable: React.FC<UserTableProps> = ({
                   </td>
 
                   <td className="border-t border-zinc-200 px-3 py-3">
-                    {renderStatusBadge(u.statusAktif)}
+                    <StatusBadge aktif={u.statusAktif} />
                   </td>
 
                   <td className="border-t border-zinc-200 px-3 py-3 hidden md:table-cell">
                     {formatDate(u.createdAt)}
                   </td>
 
+                  {/* 👉 Kolom Aksi (hapus saja) */}
                   <td className="border-t border-zinc-200 px-3 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <IconButton
-                        tone="indigo"
-                        onClick={() =>
-                          router.push(`/admin/users/${u.userId}/upload-foto`)
-                        }
-                        title="Upload foto profil"
-                        aria-label={`Upload foto profil ${u.namaLengkap}`}
-                      >
-                        <UploadCloud className="h-5 w-5" />
-                      </IconButton>
-
-                      <IconButton
-                        tone="blue"
-                        onClick={() => onEdit(u)}
-                        title="Edit pengguna"
-                        aria-label={`Edit pengguna ${u.namaLengkap}`}
-                      >
-                        <Edit className="h-5 w-5" />
-                      </IconButton>
-
-                      <IconButton
-                        tone="zinc"
-                        onClick={() => onToggleActive(u.userId, !u.statusAktif)}
-                        title={u.statusAktif ? "Non-aktifkan" : "Aktifkan"}
-                        aria-label={`Ubah status ${u.namaLengkap}`}
-                      >
-                        {u.statusAktif ? (
-                          <ToggleLeft className="h-5 w-5" />
-                        ) : (
-                          <ToggleRight className="h-5 w-5" />
-                        )}
-                      </IconButton>
-
-                      <IconButton
-                        tone="red"
+                    <div className="flex items-center justify-center">
+                      <button
                         onClick={() => onDelete(u.userId)}
                         title="Hapus pengguna"
                         aria-label={`Hapus pengguna ${u.namaLengkap}`}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg 
+                                   text-red-600 hover:text-red-700 hover:bg-red-50 
+                                   focus-visible:outline focus-visible:outline-2 
+                                   focus-visible:outline-offset-2 focus-visible:outline-red-600
+                                   transition-colors"
                       >
                         <Trash2 className="h-5 w-5" />
-                      </IconButton>
+                      </button>
                     </div>
                   </td>
                 </tr>

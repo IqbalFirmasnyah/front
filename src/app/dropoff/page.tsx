@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   MapPin,
   FileText,
@@ -31,6 +32,8 @@ interface CreateDropoffDto {
   alamatJemputan: string;
   tanggalLayanan: string;
 }
+
+import dropoffImg from "@/app/assets/Dropoff.jpg";
 
 export default function CreateDropoffPage() {
   const router = useRouter();
@@ -270,11 +273,16 @@ export default function CreateDropoffPage() {
               </Card>
 
               <Card className="overflow-hidden rounded-xl hover:shadow-xl transition cursor-default">
-                <img
-                  src="https://images.unsplash.com/photo-1502920917128-1aa500764b8a?w=800&h=400&fit=crop"
-                  alt="Dropoff service"
-                  className="w-full h-56 object-cover"
-                />
+              <div className="relative w-full h-56">
+                  <Image
+                    src={dropoffImg}     // ⬅️ pakai asset lokal
+                    alt="Layanan Dropoff"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
+                    priority={false}
+                  />
+                </div>
                 <div className="p-5">
                   <h3 className="text-lg md:text-xl font-semibold mb-1">
                     Perjalanan Nyaman & Aman

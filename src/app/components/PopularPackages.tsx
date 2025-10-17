@@ -19,7 +19,6 @@ type Fasilitas = {
   harga?: number;
 };
 
-// format yang diharapkan SupirCard
 type SupirNormalized = {
   supirId: number;
   nama: string;
@@ -32,7 +31,9 @@ type SupirNormalized = {
   statusSupir: string;
 };
 
-
+/* =========================
+   Skeleton Components
+========================= */
 const SkeletonCard: React.FC = () => (
   <div className="rounded-xl overflow-hidden border bg-white shadow-sm animate-pulse">
     <div className="h-48 sm:h-52 bg-gray-200" />
@@ -62,12 +63,9 @@ const SkeletonTile: React.FC = () => (
 /* =========================
    Helpers
 ========================= */
-
 const grid3 =
-  "grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 " +
-  "[@media(min-width:1024px)]:grid-cols-[repeat(3,minmax(0,1fr))]";
+  "grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 [@media(min-width:1024px)]:grid-cols-[repeat(3,minmax(0,1fr))]";
 
-// normalisasi paket luar kota -> TourPackage
 function mapLuarToTourPackage(lp: any): TourPackage {
   return {
     paketId: lp?.id ?? lp?.paketId ?? lp?.paketWisataLuarKotaId ?? Math.floor(Math.random() * 1e9),
@@ -89,7 +87,6 @@ function mapLuarToTourPackage(lp: any): TourPackage {
   };
 }
 
-// normalisasi supir -> SupirNormalized (untuk SupirCard)
 const normalizeSupir = (s: any): SupirNormalized => ({
   supirId: s?.supirId ?? s?.id ?? Math.floor(Math.random() * 1e9),
   nama: s?.nama ?? s?.namaSupir ?? "Supir",
@@ -102,7 +99,6 @@ const normalizeSupir = (s: any): SupirNormalized => ({
   statusSupir: s?.statusSupir ?? (s?.statusAktif ? "tersedia" : "tidak tersedia"),
 });
 
-// normalisasi armada -> ArmadaType (untuk ArmadaCard)
 const normalizeArmada = (a: any): ArmadaType => ({
   armadaId: a?.armadaId ?? a?.id ?? Math.floor(Math.random() * 1e9),
   jenisMobil: a?.jenisMobil ?? a?.jenis ?? a?.tipe ?? "-",
@@ -117,27 +113,21 @@ const normalizeArmada = (a: any): ArmadaType => ({
 /* =========================
    Component
 ========================= */
-
 const PopularPackages: React.FC = () => {
   const router = useRouter();
 
-  // Paket (dalam kota)
   const [packages, setPackages] = useState<TourPackage[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [errorPackages, setErrorPackages] = useState<string | null>(null);
 
-
-  // Fasilitas
   const [fasilitasList, setFasilitasList] = useState<Fasilitas[]>([]);
   const [loadingFasilitas, setLoadingFasilitas] = useState(true);
   const [errorFasilitas, setErrorFasilitas] = useState<string | null>(null);
 
-  // Supir
   const [supirs, setSupirs] = useState<SupirNormalized[]>([]);
   const [loadingSupir, setLoadingSupir] = useState(true);
   const [errorSupir, setErrorSupir] = useState<string | null>(null);
 
-  // Armada
   const [armadas, setArmadas] = useState<ArmadaType[]>([]);
   const [loadingArmada, setLoadingArmada] = useState(true);
   const [errorArmada, setErrorArmada] = useState<string | null>(null);
@@ -148,14 +138,6 @@ const PopularPackages: React.FC = () => {
     const json = await res.json();
     if (!res.ok) throw new Error(json?.message || "Gagal mengambil paket wisata.");
     return (json.data ?? []) as TourPackage[];
-  }, []);
-
-  const fetchLuarPackages = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/paket-wisata-luar-kota/all`, { cache: "no-store", signal });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json?.message || "Gagal mengambil paket wisata luar kota.");
-    const raw = json.data ?? [];
-    return (raw as any[]).map(mapLuarToTourPackage);
   }, []);
 
   const fetchFasilitas = useCallback(async (signal?: AbortSignal) => {
@@ -192,7 +174,7 @@ const PopularPackages: React.FC = () => {
         setLoadingSupir(true);
         setLoadingArmada(true);
 
-        const [pkg,fas, sup, arm] = await Promise.all([
+        const [pkg, fas, sup, arm] = await Promise.all([
           fetchPackages(controller.signal).catch((e) => {
             setErrorPackages(String(e?.message || e));
             return [];
@@ -224,14 +206,13 @@ const PopularPackages: React.FC = () => {
     })();
 
     return () => controller.abort();
-  }, [fetchPackages, fetchLuarPackages, fetchFasilitas, fetchSupirs, fetchArmadas]);
+  }, [fetchPackages, fetchFasilitas, fetchSupirs, fetchArmadas]);
 
   /* -------- UI -------- */
-
   return (
     <section className="py-16 md:py-20 bg-gradient-to-b from-white to-gray-50">
       <div className="mx-auto max-w-7xl px-4 md:px-6">
-        {/* ========== Paket Wisata (Dalam Kota) ========== */}
+        {/* ========== Paket Wisata ========== */}
         <header className="text-center mb-10 md:mb-14">
           <p className="text-sm tracking-wider uppercase text-primary font-semibold">Rekomendasi Kami</p>
           <h2 className="mt-2 text-balance text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
@@ -243,17 +224,11 @@ const PopularPackages: React.FC = () => {
         </header>
 
         {errorPackages && (
-          <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700" role="alert">
-            {errorPackages}
-          </div>
+          <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorPackages}</div>
         )}
 
         {loadingPackages ? (
-          <div className={grid3} aria-busy="true">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
+          <div className={grid3}>{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}</div>
         ) : packages.length === 0 ? (
           <div className="rounded-xl bg-white border shadow-sm p-10 text-center">
             <div className="text-6xl mb-4">✈️</div>
@@ -273,33 +248,11 @@ const PopularPackages: React.FC = () => {
           </div>
         )}
 
-        {!loadingPackages && packages.length > 0 && (
-          <div className="mt-10 text-center">
-            <button
-              onClick={() => router.push("/paket-wisata")}
-              className="inline-flex items-center px-6 py-3 rounded-lg bg-primary text-white shadow hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-            >
-              Lihat Semua Paket
-            </button>
-          </div>
-        )}
-
-
         {/* ========== Fasilitas ========== */}
         <div className="mt-16 md:mt-20">
-          <div className="flex items-end justify-between gap-4 mb-6">
-            <div>
-              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Tambahan Perjalanan</p>
-              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Fasilitas Tersedia</h3>
-            </div>
-            {fasilitasList.length > 0 && !loadingFasilitas && (
-              <button
-                onClick={() => router.push("/fasilitas")}
-                className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/30 rounded px-2 py-1"
-              >
-                Lihat Semua
-              </button>
-            )}
+          <div className="mb-6">
+            <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Tambahan Perjalanan</p>
+            <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Fasilitas Tersedia</h3>
           </div>
 
           {errorFasilitas && (
@@ -307,23 +260,13 @@ const PopularPackages: React.FC = () => {
           )}
 
           {loadingFasilitas ? (
-            <div
-              className="grid gap-6 sm:grid-cols-2 [@media(min-width:1024px)]:grid-cols-[repeat(3,minmax(0,1fr))]"
-              aria-busy="true"
-            >
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonTile key={i} />
-              ))}
-            </div>
+            <div className={grid3}>{Array.from({ length: 6 }).map((_, i) => <SkeletonTile key={i} />)}</div>
           ) : fasilitasList.length === 0 ? (
             <p className="text-gray-600">Belum ada fasilitas yang tersedia.</p>
           ) : (
-            <ul className="grid gap-6 sm:grid-cols-2 [@media(min-width:1024px)]:grid-cols-[repeat(3,minmax(0,1fr))]">
+            <ul className={grid3}>
               {fasilitasList.map((f) => (
-                <li
-                  key={f.fasilitasId}
-                  className="group relative p-6 bg-white rounded-xl border shadow-sm hover:shadow-md transition"
-                >
+                <li key={f.fasilitasId} className="group relative p-6 bg-white rounded-xl border shadow-sm hover:shadow-md transition">
                   <h4 className="text-lg font-semibold tracking-tight text-gray-900">{f.namaFasilitas}</h4>
                   {f.deskripsi && <p className="text-pretty text-gray-600 mt-2">{f.deskripsi}</p>}
                   {typeof f.harga === "number" && (
@@ -335,25 +278,17 @@ const PopularPackages: React.FC = () => {
           )}
         </div>
 
-        {/* ========== Supir (pakai SupirCard) ========== */}
+        {/* ========== Supir ========== */}
         <div className="mt-16 md:mt-20">
-          <div className="flex items-end justify-between gap-4 mb-6">
-            <div>
-              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Tim Lapangan</p>
-              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Daftar Supir</h3>
-            </div>
-          </div>
+          <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Tim Lapangan</p>
+          <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 mb-6">Daftar Supir</h3>
 
           {errorSupir && (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorSupir}</div>
           )}
 
           {loadingSupir ? (
-            <div className={grid3} aria-busy="true">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonTile key={i} />
-              ))}
-            </div>
+            <div className={grid3}>{Array.from({ length: 6 }).map((_, i) => <SkeletonTile key={i} />)}</div>
           ) : supirs.length === 0 ? (
             <p className="text-gray-600">Belum ada data supir.</p>
           ) : (
@@ -367,25 +302,17 @@ const PopularPackages: React.FC = () => {
           )}
         </div>
 
-        {/* ========== Armada (pakai ArmadaCard) ========== */}
+        {/* ========== Armada ========== */}
         <div className="mt-16 md:mt-20">
-          <div className="flex items-end justify-between gap-4 mb-6">
-            <div>
-              <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Transportasi</p>
-              <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Armada Kami</h3>
-            </div>
-          </div>
+          <p className="text-xs tracking-wider uppercase text-primary/80 font-semibold">Transportasi</p>
+          <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 mb-6">Armada Kami</h3>
 
           {errorArmada && (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{errorArmada}</div>
           )}
 
           {loadingArmada ? (
-            <div className={grid3} aria-busy="true">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonArmadaCard key={i} />
-              ))}
-            </div>
+            <div className={grid3}>{Array.from({ length: 6 }).map((_, i) => <SkeletonArmadaCard key={i} />)}</div>
           ) : armadas.length === 0 ? (
             <p className="text-gray-600">Belum ada data armada.</p>
           ) : (

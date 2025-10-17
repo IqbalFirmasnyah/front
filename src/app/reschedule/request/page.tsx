@@ -7,9 +7,10 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Label } from "@/app/components/ui/label";
-import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Separator } from "@/app/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { Calendar as CalendarCmp } from "@/app/components/ui/calendar";
 import {
   AlertCircle,
   ArrowLeft,
@@ -18,11 +19,12 @@ import {
   Info,
   MapPin,
   Users,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfDay, isBefore } from "date-fns";
+import { cn } from "@/lib/utils";
 import { convertTravelImageUrl } from "@/lib/helper/image_url";
-
 
 /* ===================== Types ===================== */
 interface BookingDetail {
@@ -85,7 +87,7 @@ function RescheduleRequestPageClient() {
   const [loading, setLoading] = useState(true);
 
   // form
-  const [tanggalBaru, setTanggalBaru] = useState("");
+  const [tanggalBaru, setTanggalBaru] = useState<Date | undefined>();
   const [alasan, setAlasan] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,8 +132,6 @@ function RescheduleRequestPageClient() {
           paketLuarKota: data.paketLuarKota,
           fasilitas: data.fasilitas,
         });
-
-        toast.success("Detail booking berhasil dimuat.");
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Terjadi kesalahan saat memuat data booking.";
         setError(msg);
@@ -179,9 +179,7 @@ function RescheduleRequestPageClient() {
     d.setUTCDate(d.getUTCDate() + 2);
     return d;
   }, [todayUTC]);
-  const minNewDateISO = useMemo(() => format(minNewDateUTC, "yyyy-MM-dd"), [minNewDateUTC]);
 
-  // eligible H-4? (today <= T_lama - 4)
   const eligibleByHMinus4 = useMemo(() => {
     if (!detail?.tanggalMulaiWisata) return false;
     const tMulai = new Date(detail.tanggalMulaiWisata);
@@ -227,7 +225,7 @@ function RescheduleRequestPageClient() {
     }
 
     // Guard H+1 & H+2
-    const tBaruUTC = toUTCDateOnly(new Date(tanggalBaru + "T00:00:00.000Z"));
+    const tBaruUTC = toUTCDateOnly(tanggalBaru);
     const hPlusOne = new Date(todayUTC);
     hPlusOne.setUTCDate(hPlusOne.getUTCDate() + 1);
     const hPlusTwo = new Date(todayUTC);
@@ -251,13 +249,15 @@ function RescheduleRequestPageClient() {
     try {
       await toast.promise(
         (async () => {
-          // Validasi server
-          await validateRescheduleApi(detail.bookingId, tanggalBaru, token);
+          await validateRescheduleApi(
+            detail.bookingId,
+            format(tanggalBaru, "yyyy-MM-dd"),
+            token
+          );
 
-          // Kirim pengajuan
           const payload: CreateRescheduleDto = {
             bookingId: detail.bookingId,
-            tanggalBaru,
+            tanggalBaru: format(tanggalBaru, "yyyy-MM-dd"),
             alasan: alasan.trim(),
           };
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reschedule`, {
@@ -278,7 +278,7 @@ function RescheduleRequestPageClient() {
 
       router.push("/my-booking");
     } catch {
-      // error sudah di-toast
+      // already toasted
     } finally {
       setSubmitting(false);
     }
@@ -326,6 +326,9 @@ function RescheduleRequestPageClient() {
       </div>
     );
   }
+
+  const minNewDateISO = format(minNewDateUTC, "yyyy-MM-dd");
+  const chosenDateText = tanggalBaru ? format(tanggalBaru, "dd MMM yyyy") : "-";
 
   return (
     <div className="min-h-screen bg-background">
@@ -417,16 +420,12 @@ function RescheduleRequestPageClient() {
                     <Separator className="my-2" />
                     <div className="flex justify-between text-base">
                       <span className="font-semibold">Tanggal Baru (preview)</span>
-                      <span className="font-bold">
-                        {tanggalBaru ? format(new Date(tanggalBaru), "dd MMM yyyy") : "-"}
-                      </span>
+                      <span className="font-bold">{chosenDateText}</span>
                     </div>
 
                     <div className="mt-3 text-xs text-muted-foreground flex">
                       <Info className="h-4 w-4 mr-2 mt-0.5" />
-                      Kebijakan: <b>H-4</b> (pengajuan paling lambat 4 hari sebelum berangkat)
-                      &nbsp;dan <b>H+2</b> (tanggal baru minimal 2 hari setelah pengajuan;
-                      H+1 tidak diperbolehkan).
+                      Kebijakan: <b>H-4</b> (ajukan ≤ H-4) & <b>H+2</b> (tanggal baru ≥ H+2, H+1 tidak boleh).
                     </div>
                   </div>
 
@@ -448,14 +447,8 @@ function RescheduleRequestPageClient() {
                   <CardTitle>Kebijakan Reschedule</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground leading-relaxed">
-                  <p>
-                    1) <b>H-4</b>: Pengajuan dilakukan paling lambat 4 hari sebelum tanggal
-                    keberangkatan lama.
-                  </p>
-                  <p>
-                    2) <b>H+2</b>: Tanggal perjalanan baru minimal 2 hari setelah tanggal pengajuan
-                    (<b>H+1 tidak diperbolehkan</b>).
-                  </p>
+                  <p>1) H-4: Ajukan paling lambat 4 hari sebelum tanggal lama.</p>
+                  <p>2) H+2: Tanggal baru minimal 2 hari setelah pengajuan (H+1 tidak diperbolehkan).</p>
                   <p>3) Tergantung ketersediaan armada & supir pada tanggal baru.</p>
                 </CardContent>
               </Card>
@@ -479,39 +472,65 @@ function RescheduleRequestPageClient() {
                     {!eligibleByHMinus4 && (
                       <div className="flex items-start bg-amber-50 border border-amber-200 rounded p-3 text-amber-700 text-sm">
                         <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
-                        Pengajuan reschedule sudah melewati batas waktu H-4 dari tanggal
-                        keberangkatan lama. Hubungi admin untuk opsi lain.
+                        Pengajuan sudah melewati H-4 dari tanggal keberangkatan lama.
                       </div>
                     )}
 
+                    {/* Date Picker (shadcn) */}
                     <div>
-                      <Label htmlFor="tanggalBaru" className="mb-1 block">
-                        Tanggal Baru
-                      </Label>
-                      <Input
-                        id="tanggalBaru"
-                        type="date"
-                        value={tanggalBaru}
-                        onChange={(e) => {
-                          const val = e.target.value; // yyyy-MM-dd
-                          setError(null);
-                          if (val) {
-                            const chosen = toUTCDateOnly(new Date(val + "T00:00:00.000Z"));
-                            const hPlusOne = new Date(todayUTC);
-                            hPlusOne.setUTCDate(hPlusOne.getUTCDate() + 1);
-                            if (chosen.getTime() === toUTCDateOnly(hPlusOne).getTime()) {
-                              setTanggalBaru("");
-                              toast.error("Tanggal baru tidak boleh H+1 dari hari ini. Pilih minimal H+2.");
-                              return;
-                            }
-                          }
-                          setTanggalBaru(val);
-                        }}
-                        className="w-full"
-                        required
-                        min={minNewDateISO} // minimal H+2
-                        disabled={!eligibleByHMinus4}
-                      />
+                      <Label className="mb-1 block">Tanggal Baru</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !tanggalBaru && "text-muted-foreground"
+                            )}
+                            disabled={!eligibleByHMinus4}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {tanggalBaru ? format(tanggalBaru, "dd MMM yyyy") : "Pilih tanggal"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarCmp
+                            mode="single"
+                            selected={tanggalBaru}
+                            onSelect={(d) => {
+                              setError(null);
+                              if (!d) return setTanggalBaru(undefined);
+                              // block H+1, min H+2
+                              const today = startOfDay(new Date());
+                              const hPlusOne = new Date(today);
+                              hPlusOne.setDate(hPlusOne.getDate() + 1);
+                              const hPlusTwo = new Date(today);
+                              hPlusTwo.setDate(hPlusTwo.getDate() + 2);
+
+                              const chosenStart = startOfDay(d);
+                              if (chosenStart.getTime() === startOfDay(hPlusOne).getTime()) {
+                                toast.error("Tanggal baru tidak boleh H+1. Pilih minimal H+2.");
+                                return;
+                              }
+                              if (isBefore(chosenStart, hPlusTwo)) {
+                                toast.error("Tanggal baru minimal H+2 dari hari ini.");
+                                return;
+                              }
+                              setTanggalBaru(d);
+                            }}
+                            disabled={(date) => {
+                              // disable < today OR < H+2
+                              const today = startOfDay(new Date());
+                              const hPlusTwo = new Date(today);
+                              hPlusTwo.setDate(hPlusTwo.getDate() + 2);
+                              return isBefore(date, hPlusTwo);
+                            }}
+                            initialFocus
+                            className="p-3 rounded-md border bg-background"
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <p className="mt-1 text-xs text-muted-foreground">
                         Minimal tanggal baru: <b>{format(minNewDateUTC, "dd MMM yyyy")}</b> (H+2).
                       </p>
@@ -536,7 +555,7 @@ function RescheduleRequestPageClient() {
                       type="submit"
                       className="w-full text-black"
                       variant="ocean"
-                      disabled={!eligibleByHMinus4 || submitting}
+                      disabled={!eligibleByHMinus4 || submitting || !tanggalBaru}
                     >
                       {submitting ? "Mengajukan..." : "Ajukan Reschedule"}
                     </Button>
