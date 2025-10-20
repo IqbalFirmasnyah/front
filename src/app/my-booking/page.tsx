@@ -1,5 +1,4 @@
-// app/my-booking/page.tsx
-'use client';
+"use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -9,7 +8,15 @@ import { Button } from "@/app/components/ui/button";
 import Header from "@/app/components/Header";
 import { usePayment } from "../hooks/usePayment";
 import BookingCard from "@/app/components/BookingCard";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
+
+type RescheduleBrief = {
+  rescheduleId: number;
+  bookingId: number;
+  tanggalLama: string;
+  tanggalBaru: string;
+  status: "pending" | "approved" | "rejected" | string;
+};
 
 interface Booking {
   bookingId: number;
@@ -36,7 +43,6 @@ interface Booking {
     statusPembayaran: string;
     tanggalPembayaran: string;
   };
-  // bidang refund dari backend
   refundStatus?: string | null;
   statusRefund?: string | null;
   refundFinalAmount?: number | string | null;
@@ -45,6 +51,9 @@ interface Booking {
     statusRefund: string;
     jumlahRefundFinal: number | string | null;
   } | null;
+
+  // untuk tampilan singkat status terkini
+  latestReschedule?: RescheduleBrief | null;
 }
 
 type FilterType = "all" | "paket_wisata" | "paket_luar_kota" | "fasilitas";
@@ -57,8 +66,26 @@ export default function MyBookingsPage() {
   const [processingPayment, setProcessingPayment] = useState<number | null>(null);
 
   const router = useRouter();
-  const { createPayment, processPayment, loading: paymentLoading, error: paymentError, clearError } =
-    usePayment();
+  const { createPayment, processPayment, loading: paymentLoading, clearError } = usePayment();
+
+  const getMyReschedules = async (): Promise<RescheduleBrief[]> => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Unauthorized");
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reschedule/my`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.message || res.statusText);
+    const items: RescheduleBrief[] = (json.data || []).map((r: any) => ({
+      rescheduleId: r.rescheduleId,
+      bookingId: r.bookingId,
+      tanggalLama: r.tanggalLama,
+      tanggalBaru: r.tanggalBaru,
+      status: r.status,
+    }));
+    return items;
+  };
 
   const getMyBookings = async () => {
     setLoading(true);
@@ -69,14 +96,34 @@ export default function MyBookingsPage() {
         router.push("/login");
         throw new Error("Unauthorized");
       }
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/my-bookings`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.message || res.statusText);
-      setBookings(json.data || []);
+
+      const [bRes, rsItems] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/booking/my-bookings`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        }),
+        getMyReschedules().catch(() => [] as RescheduleBrief[]),
+      ]);
+
+      const bJson = await bRes.json();
+      if (!bRes.ok) throw new Error(bJson?.message || bRes.statusText);
+      const bookingsRaw: Booking[] = bJson.data || [];
+
+      // Pilih reschedule terbaru per bookingId
+      const latestByBooking = new Map<number, RescheduleBrief>();
+      for (const r of rsItems) {
+        const prev = latestByBooking.get(r.bookingId);
+        if (!prev || r.rescheduleId > prev.rescheduleId) {
+          latestByBooking.set(r.bookingId, r);
+        }
+      }
+
+      const merged = bookingsRaw.map((b) => ({
+        ...b,
+        latestReschedule: latestByBooking.get(b.bookingId) ?? null,
+      }));
+
+      setBookings(merged);
     } catch (err: any) {
       setError(err.message || "Gagal memuat data booking.");
     } finally {
@@ -89,12 +136,20 @@ export default function MyBookingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
+  // (opsional) auto-refresh saat ada event realtime "bookingRescheduled"
+  useEffect(() => {
+    const handler = () => getMyBookings();
+    window.addEventListener("reschedule-updated", handler as EventListener);
+    return () => window.removeEventListener("reschedule-updated", handler as EventListener);
+  }, []);
+
   const filteredBookings = useMemo(() => {
     if (selectedFilter === "all") return bookings;
-    return bookings.filter((b) =>
-      (selectedFilter === "paket_wisata" && b.paket) ||
-      (selectedFilter === "paket_luar_kota" && b.paketLuarKota) ||
-      (selectedFilter === "fasilitas" && b.fasilitas)
+    return bookings.filter(
+      (b) =>
+        (selectedFilter === "paket_wisata" && !!b.paket) ||
+        (selectedFilter === "paket_luar_kota" && !!b.paketLuarKota) ||
+        (selectedFilter === "fasilitas" && !!b.fasilitas)
     );
   }, [bookings, selectedFilter]);
 
@@ -104,11 +159,7 @@ export default function MyBookingsPage() {
     try {
       const paymentData = await createPayment(bookingId);
       if (!paymentData) throw new Error("Gagal membuat transaksi pembayaran");
-      processPayment(
-        paymentData.snapToken,
-        () => getMyBookings(),
-        () => {}
-      );
+      processPayment(paymentData.snapToken, () => getMyBookings(), () => {});
     } catch (err: any) {
       setError(`Gagal memproses pembayaran: ${err.message}`);
     } finally {
@@ -139,7 +190,10 @@ export default function MyBookingsPage() {
   };
 
   const handleReschedule = (booking: Booking) => {
-    router.push(`/reschedule/request?bookingId=${booking.bookingId}`);
+    // buka halaman form reschedule request
+    // (modal form bisa juga, tapi sesuai flow kamu saat ini pakai page terpisah)
+    // Pastikan rules validateOnly dipanggil di page form.
+    window.location.href = `/reschedule/request?bookingId=${booking.bookingId}`;
   };
 
   if (loading) {
@@ -156,7 +210,7 @@ export default function MyBookingsPage() {
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-          <Button onClick={getMyBookings} className="mt-2" variant="ocean">
+          <Button onClick={getMyBookings} className="mt-2" variant="outline">
             Coba Lagi
           </Button>
         </div>
@@ -204,7 +258,7 @@ export default function MyBookingsPage() {
           {filteredBookings.length === 0 ? (
             <Card className="text-center py-16">
               <CardContent>
-                <Button onClick={() => router.push("/paket-wisata")} variant="ocean" size="lg">
+                <Button onClick={() => window.location.href = "/paket-wisata"} variant="ocean" size="lg">
                   Lihat Paket Wisata
                 </Button>
               </CardContent>
